@@ -12,9 +12,44 @@ export const metadata = {
 // Per host, per request. Never prerendered.
 export const dynamic = "force-dynamic";
 
-export default async function HostPage() {
+type Gate =
+  | { allowed: true }
+  | { allowed: false; title: string; detail: string };
+
+async function hostGate(): Promise<Gate> {
+  if (!process.env.CLERK_SECRET_KEY) {
+    return {
+      allowed: false,
+      title: "Host access cannot be checked.",
+      detail:
+        "CLERK_SECRET_KEY is not set on this deployment, so there is no way to read who is signed in.",
+    };
+  }
+
   const user = await currentUser();
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
+
+  if (email === null) {
+    return {
+      allowed: false,
+      title: "Host access only.",
+      detail: "Sign in with a host account to triage submissions.",
+    };
+  }
+
+  if (!isHostEmail(email)) {
+    return {
+      allowed: false,
+      title: "Host access only.",
+      detail: `Signed in as ${email}. Add that address to HOST_EMAILS to get in.`,
+    };
+  }
+
+  return { allowed: true };
+}
+
+export default async function HostPage() {
+  const gate = await hostGate();
 
   return (
     <>
@@ -27,18 +62,14 @@ export default async function HostPage() {
         </h1>
 
         <div className="mt-6">
-          {isHostEmail(email) ? (
+          {gate.allowed ? (
             <HostErrorBoundary>
               <HostDashboard />
             </HostErrorBoundary>
           ) : (
             <div className={card}>
-              <p className="font-semibold">Host access only.</p>
-              <p className="mt-1 text-sm text-zinc-400">
-                {email === null
-                  ? "Sign in with a host account to triage submissions."
-                  : `Signed in as ${email}. Add that address to HOST_EMAILS to get in.`}
-              </p>
+              <p className="font-semibold">{gate.title}</p>
+              <p className="mt-1 text-sm text-zinc-400">{gate.detail}</p>
             </div>
           )}
         </div>
