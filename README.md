@@ -15,6 +15,15 @@ deployed on Vercel.
 | `/host`  | `HOST_EMAILS` only   | Triage submissions by status. Refuses to select more than 8.              |
 | `/board` | Public               | Running order for the room. Selected names and titles only. Updates live. |
 
+## Where auth runs
+
+`proxy.ts` runs Clerk's middleware on `/apply` and `/host` only. Clerk bounces a
+fresh browser to its own servers before rendering a matched route, so keeping `/`
+and `/board` off that list means the landing page and the projector board render
+straight away and keep working even when Clerk is slow or down. Nothing depends
+on that path matching for access control: both signed in routes check the user
+where they read data, and every Convex function checks again on the backend.
+
 ## Environment variables
 
 | Name                               | Where it goes                            | Where to find it                                        |
