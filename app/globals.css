@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: #08090c;
+  background-image: radial-gradient(
+      900px 420px at 50% -12%,
+      rgba(252, 211, 77, 0.13),
+      transparent 62%
+    ),
+    radial-gradient(
+      700px 400px at 110% 10%,
+      rgba(129, 140, 248, 0.1),
+      transparent 60%
+    );
+  background-repeat: no-repeat;
+  color: #f4f4f5;
+}
+
+::selection {
+  background: rgba(252, 211, 77, 0.28);
+}
