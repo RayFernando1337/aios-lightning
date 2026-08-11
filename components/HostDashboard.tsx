@@ -37,8 +37,13 @@ function Triage() {
   const setStatus = useMutation(api.submissions.setStatus);
 
   const [filter, setFilter] = useState<Filter>("all");
-  const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<Id<"submissions"> | null>(null);
+  // Kept per row so a host holding a phone sees the refusal next to the button
+  // they just tapped, not at the top of a list they scrolled past.
+  const [failure, setFailure] = useState<{
+    id: Id<"submissions">;
+    message: string;
+  } | null>(null);
 
   if (submissions === undefined) {
     return <p className="text-zinc-400">Loading submissions...</p>;
@@ -61,11 +66,11 @@ function Triage() {
     status: SubmissionStatus,
   ) {
     setPendingId(submissionId);
-    setError(null);
+    setFailure(null);
     try {
       await setStatus({ submissionId, status });
     } catch (caught) {
-      setError(readableError(caught));
+      setFailure({ id: submissionId, message: readableError(caught) });
     } finally {
       setPendingId(null);
     }
@@ -109,12 +114,6 @@ function Triage() {
         </div>
       </div>
 
-      {error !== null && (
-        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          {error}
-        </p>
-      )}
-
       {visible.length === 0 ? (
         <p className={`${card} text-zinc-400`}>Nothing here yet.</p>
       ) : (
@@ -124,6 +123,9 @@ function Triage() {
               <SubmissionRow
                 submission={submission}
                 pending={pendingId === submission._id}
+                failure={
+                  failure?.id === submission._id ? failure.message : null
+                }
                 onChange={(status) => changeStatus(submission._id, status)}
               />
             </li>
@@ -137,10 +139,12 @@ function Triage() {
 function SubmissionRow({
   submission,
   pending,
+  failure,
   onChange,
 }: {
   submission: Doc<"submissions">;
   pending: boolean;
+  failure: string | null;
   onChange: (status: SubmissionStatus) => void;
 }) {
   return (
@@ -202,6 +206,12 @@ function SubmissionRow({
           );
         })}
       </div>
+
+      {failure !== null && (
+        <p className="mt-3 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          {failure}
+        </p>
+      )}
     </div>
   );
 }
