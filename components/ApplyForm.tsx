@@ -87,12 +87,16 @@ function SubmittedCard({
   submission: Doc<"submissions">;
   onEdit: () => void;
 }) {
+  const isOut = submission.status === "rejected";
+
   return (
     <div className="space-y-4">
       <div className={card}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className={eyebrow}>You are in</p>
+            <p className={eyebrow}>
+              {isOut ? "Your application" : "You are in"}
+            </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight">
               {submission.demoTitle}
             </h2>
@@ -123,19 +127,21 @@ function SubmittedCard({
         </dl>
       </div>
 
-      <div className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.07] p-5 sm:p-6">
-        <p className={eyebrow}>Two things left</p>
-        <ol className="mt-3 space-y-2 text-sm text-zinc-200">
-          <li>
-            1. Hosts pick up to {MAX_SELECTED} demos. Watch the{" "}
-            <Link href="/board" className="underline hover:text-amber-200">
-              board
-            </Link>
-            .
-          </li>
-          <li>2. {EVENT.dryRun}</li>
-        </ol>
-      </div>
+      {!isOut && (
+        <div className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.07] p-5 sm:p-6">
+          <p className={eyebrow}>Two things left</p>
+          <ol className="mt-3 space-y-2 text-sm text-zinc-200">
+            <li>
+              1. Hosts pick up to {MAX_SELECTED} demos. Watch the{" "}
+              <Link href="/board" className="underline hover:text-amber-200">
+                board
+              </Link>
+              .
+            </li>
+            <li>2. {EVENT.dryRun}</li>
+          </ol>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <button type="button" onClick={onEdit} className={buttonSecondary}>
