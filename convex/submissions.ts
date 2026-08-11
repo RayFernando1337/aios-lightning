@@ -169,8 +169,12 @@ export const board = query({
       .withIndex("by_status", (q) => q.eq("status", "selected"))
       .collect();
 
+    // Rows selected before `selectedAt` existed fall back to `updatedAt`,
+    // preserving the ordering they had under the old sort.
     return selected
-      .sort((a, b) => (a.selectedAt ?? 0) - (b.selectedAt ?? 0))
+      .sort(
+        (a, b) => (a.selectedAt ?? a.updatedAt) - (b.selectedAt ?? b.updatedAt),
+      )
       .map((submission) => ({
         _id: submission._id,
         displayName: submission.displayName,
