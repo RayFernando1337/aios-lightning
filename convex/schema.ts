@@ -22,6 +22,9 @@ export const submissionFields = {
   status: statusValidator,
   createdAt: v.number(),
   updatedAt: v.number(),
+  // When a host moved this row into `selected`. Drives the board order and is
+  // cleared when the row leaves `selected`.
+  selectedAt: v.optional(v.number()),
 };
 
 export default defineSchema({

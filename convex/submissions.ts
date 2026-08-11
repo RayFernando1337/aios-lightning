@@ -143,6 +143,13 @@ export const setStatus = mutation({
     await ctx.db.patch(args.submissionId, {
       status: args.status,
       updatedAt: Date.now(),
+      // Board order follows selection time, not edit time, so applicants can
+      // fix typos without shuffling the lineup.
+      selectedAt: isNewlySelected
+        ? Date.now()
+        : args.status === "selected"
+          ? submission.selectedAt
+          : undefined,
     });
 
     return null;
@@ -160,7 +167,7 @@ export const board = query({
       .collect();
 
     return selected
-      .sort((a, b) => a.updatedAt - b.updatedAt)
+      .sort((a, b) => (a.selectedAt ?? 0) - (b.selectedAt ?? 0))
       .map((submission) => ({
         _id: submission._id,
         displayName: submission.displayName,
