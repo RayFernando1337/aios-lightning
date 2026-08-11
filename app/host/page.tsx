@@ -1,5 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server";
 import HostDashboard from "@/components/HostDashboard";
+import HostErrorBoundary from "@/components/HostErrorBoundary";
 import SiteHeader from "@/components/SiteHeader";
 import { isHostEmail } from "@/convex/lib/hosts";
 import { card, eyebrow } from "@/lib/styles";
@@ -27,7 +28,9 @@ export default async function HostPage() {
 
         <div className="mt-6">
           {isHostEmail(email) ? (
-            <HostDashboard />
+            <HostErrorBoundary>
+              <HostDashboard />
+            </HostErrorBoundary>
           ) : (
             <div className={card}>
               <p className="font-semibold">Host access only.</p>

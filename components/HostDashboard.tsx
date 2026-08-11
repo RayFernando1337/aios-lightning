@@ -73,7 +73,7 @@ function Triage() {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-[57px] z-10 -mx-5 border-b border-white/10 bg-[#08090c]/95 px-5 py-3 backdrop-blur">
+      <div className="sticky top-14 z-10 -mx-5 border-b border-white/10 bg-[#08090c]/95 px-5 py-3 backdrop-blur">
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-sm text-zinc-400">
             <span

@@ -85,7 +85,10 @@ export const submit = mutation({
       .unique();
 
     if (existing !== null) {
-      await ctx.db.patch(existing._id, content);
+      await ctx.db.patch(existing._id, {
+        ...content,
+        email: identity.email ?? existing.email,
+      });
       return existing._id;
     }
 

@@ -130,8 +130,9 @@ Rules enforced in `convex/submissions.ts`, not just in the UI:
 ## Scripts
 
 ```bash
-npm run dev     # Next.js dev server
-npm run build   # production build
-npm run lint    # eslint
-npx convex dev  # Convex functions and schema in watch mode
+npm run dev        # Next.js dev server
+npm run build      # production build
+npm run lint       # eslint
+npm run typecheck  # route types, then tsc
+npx convex dev     # Convex functions and schema in watch mode
 ```
