@@ -2,7 +2,7 @@
 
 import { notFound } from "next/navigation";
 import { useState } from "react";
-import { SubmissionRow } from "@/components/HostDashboard";
+import { SubmissionRow, toTriageCard } from "@/components/HostDashboard";
 import { MAX_SELECTED } from "@/convex/lib/limits";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { SubmissionStatus } from "@/lib/status";
@@ -52,7 +52,7 @@ export default function Harness() {
         {rows.map((submission) => (
           <li key={submission._id} className={card} data-row={submission._id}>
             <SubmissionRow
-              submission={submission}
+              card={toTriageCard(submission)}
               pending={false}
               failure={
                 refused === submission._id
