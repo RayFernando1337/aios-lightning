@@ -25,14 +25,14 @@ function row(
     | "readyIn60s"
     | "createdAt"
     | "updatedAt"
-  > & { email?: string },
+  >,
 ): Doc<"submissions"> {
   const createdAt = 1_754_900_000_000 + index * 60_000;
   return {
     _id: `fixture_${index}` as Id<"submissions">,
     _creationTime: createdAt,
     userId: `user_${index}`,
-    email: fields.email ?? `demo${index}@example.com`,
+    email: `demo${index}@example.com`,
     displayName: fields.displayName,
     demoTitle: fields.demoTitle,
     whatYoullShowLive: fields.whatYoullShowLive,

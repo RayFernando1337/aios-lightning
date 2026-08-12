@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { useState } from "react";
 import { SubmissionRow, toTriageCard } from "@/components/HostDashboard";
 import { MAX_SELECTED } from "@/convex/lib/limits";
-import { Doc, Id } from "@/convex/_generated/dataModel";
+import { Id } from "@/convex/_generated/dataModel";
 import { SubmissionStatus } from "@/lib/status";
 import { card } from "@/lib/styles";
 import { FIXTURES } from "./fixtures";
@@ -17,7 +17,7 @@ import { FIXTURES } from "./fixtures";
  * case that decides whether the card layout holds.
  */
 export default function Harness() {
-  const [rows, setRows] = useState<Doc<"submissions">[]>(FIXTURES);
+  const [rows, setRows] = useState(FIXTURES);
   const [refused, setRefused] = useState<Id<"submissions"> | null>(null);
 
   if (process.env.NODE_ENV === "production") {
@@ -39,6 +39,8 @@ export default function Harness() {
   }
 
   return (
+    // The browser harness waits on this before clicking, so it never drives a
+    // tree that React has not hydrated yet.
     <main
       data-harness-ready="true"
       className="mx-auto w-full max-w-2xl px-5 pt-8 pb-16"
