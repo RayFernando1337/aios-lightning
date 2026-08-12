@@ -89,7 +89,17 @@ export const FIXTURES: Doc<"submissions">[] = [
     takeaway: "Watch inference is real, and the battery cost is smaller than you think.",
     status: "submitted",
   }),
+  // The case the clamp handles worst: the demo is real but buried under a
+  // paragraph of preamble, so the visible lines say nothing about it.
   row(4, {
+    displayName: "Tomas Lindqvist",
+    demoTitle: "Gesture control for a projector",
+    whatYoullShowLive:
+      "I have been building this on and off since last spring, mostly on weekends, and my background is embedded rather than the usual web stack, so bear with me on the tooling choices because they are not what this crowd would pick. Anyway, the actual demo: I put an ESP32 on the projector and drive the slides by waving at it, with the model running on the chip.",
+    takeaway: "A gesture model fits on a two dollar microcontroller.",
+    status: "submitted",
+  }),
+  row(5, {
     displayName: "Dana Osei",
     demoTitle: "Replacing my scraper with a screenshot",
     whatYoullShowLive:

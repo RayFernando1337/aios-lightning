@@ -163,7 +163,7 @@ function Triage() {
         </div>
       </div>
 
-      {visible.length === 0 ? (
+      {cards.length === 0 ? (
         <p className={`${card} text-zinc-400`}>Nothing here yet.</p>
       ) : (
         <ul className="space-y-3">
@@ -200,10 +200,7 @@ export function SubmissionRow({
 
   return (
     <div>
-      {/* Three lines is what FIELD_LIMITS.demoTitle wraps to at 390px. */}
-      <h3 className="line-clamp-3 font-semibold break-words text-zinc-50">
-        {card.title}
-      </h3>
+      <h2 className="font-semibold break-words text-zinc-50">{card.title}</h2>
 
       <div className="mt-1 flex items-start justify-between gap-3">
         <p className="min-w-0 text-sm break-words text-zinc-400">
@@ -236,20 +233,26 @@ export function SubmissionRow({
         ))}
       </dl>
 
+      {/* Only the email is truly hidden when collapsed. `line-clamp` clips the
+          answers visually but leaves them in the accessibility tree, so this
+          controls the email and says so. */}
       <button
         type="button"
         aria-expanded={expanded}
+        aria-controls={`contact-${card.id}`}
         onClick={() => setExpanded((current) => !current)}
-        className="mt-2 text-sm font-medium text-amber-300/90 hover:text-amber-200"
+        className="mt-1 min-h-11 py-3 text-sm font-medium text-amber-300/90 hover:text-amber-200"
       >
-        {expanded ? "Hide full text" : "Full text and email"}
+        {expanded ? "Show less" : "Full answers and email"}
       </button>
 
-      {expanded && (
-        <p className="mt-2 font-mono text-xs break-all text-zinc-500">
-          {card.email ?? "no email on token"}
-        </p>
-      )}
+      <p
+        id={`contact-${card.id}`}
+        hidden={!expanded}
+        className="font-mono text-xs break-all text-zinc-500"
+      >
+        {card.email ?? "no email on token"}
+      </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {ACTION_ORDER.map((status) => {

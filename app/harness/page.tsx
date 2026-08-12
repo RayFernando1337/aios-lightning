@@ -40,7 +40,10 @@ export default function Harness() {
       <script
         id="fixtures"
         type="application/json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FIXTURES) }}
+        // Escaped so a fixture containing "</script>" cannot break out of the tag.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(FIXTURES).replace(/</g, "\\u003c"),
+        }}
       />
       <ul className="space-y-3">
         {rows.map((submission) => (
