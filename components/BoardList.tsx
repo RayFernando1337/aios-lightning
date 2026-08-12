@@ -43,13 +43,23 @@ export default function BoardList() {
               <p className="mt-1 text-zinc-300 sm:text-lg">
                 {entry.displayName}
               </p>
-              <p className="mt-3 whitespace-pre-line text-zinc-200 sm:text-lg">
-                {entry.whatYoullShowLive}
-              </p>
-              <p className="mt-3 text-sm text-zinc-300 sm:text-base">
-                <span className="font-semibold text-amber-300">Takeaway: </span>
-                {entry.takeaway}
-              </p>
+              {/* The deployed Convex functions can lag this frontend (deploy
+                  window, frontend-only previews), leaving these fields
+                  undefined at runtime despite the validator type. Degrade to
+                  the title-and-name card instead of dangling labels. */}
+              {entry.whatYoullShowLive ? (
+                <p className="mt-3 whitespace-pre-line text-zinc-200 sm:text-lg">
+                  {entry.whatYoullShowLive}
+                </p>
+              ) : null}
+              {entry.takeaway ? (
+                <p className="mt-3 text-sm text-zinc-300 sm:text-base">
+                  <span className="font-semibold text-amber-300">
+                    Takeaway:{" "}
+                  </span>
+                  {entry.takeaway}
+                </p>
+              ) : null}
             </div>
           </li>
         ))}
