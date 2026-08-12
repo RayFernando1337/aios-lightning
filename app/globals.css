@@ -148,6 +148,13 @@ body::before {
   animation-delay: 0.55s;
 }
 
+.site-chrome {
+  background: rgb(23 23 23 / 0.86);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--color-line);
+}
+
 .nav-pill {
   display: inline-flex;
   align-items: center;
@@ -206,28 +213,31 @@ a:hover .ticket-icon {
 }
 
 .poster-pick {
-  position: absolute;
-  inset: auto 12px 12px 12px;
-  display: flex;
+  display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  justify-content: center;
   background: var(--color-admit);
-  padding: 0.45rem 0.6rem;
+  padding: 0.3rem 0.55rem;
   font-family: var(--font-martian), ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+  color: var(--color-paper);
 }
 
-.poster-card:hover .poster-pick {
-  opacity: 1;
-  transform: translateY(0);
+.poster-pick--open {
+  background: transparent;
+  border: 1px solid var(--color-line);
+  color: var(--color-muted);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 .vip-seal {
@@ -297,10 +307,5 @@ a:hover .ticket-icon {
 
   .film-leader {
     display: none !important;
-  }
-
-  .poster-pick {
-    opacity: 1;
-    transform: none;
   }
 }
