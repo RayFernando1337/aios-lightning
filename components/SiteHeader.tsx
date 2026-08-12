@@ -28,7 +28,7 @@ export default function SiteHeader() {
 
         <AuthLoading>
           <span className="font-mono text-[10px] tracking-[0.22em] text-muted uppercase">
-            ...
+            Wait
           </span>
         </AuthLoading>
 
