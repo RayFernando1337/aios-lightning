@@ -2,15 +2,8 @@ import Link from "next/link";
 import ApplyCta from "@/components/ApplyCta";
 import SiteHeader from "@/components/SiteHeader";
 import { MAX_SELECTED } from "@/convex/lib/limits";
-import { EVENT, RULES } from "@/lib/content";
+import { EVENT, FLOW, RULES } from "@/lib/content";
 import { buttonSecondary, card, eyebrow } from "@/lib/styles";
-
-const FLOW = [
-  "Apply below. It takes about a minute.",
-  `Hosts pick up to ${MAX_SELECTED} demos tonight.`,
-  "Dry run with Ray before we start.",
-  "Plug in, show it running, sit down.",
-];
 
 export default function Home() {
   return (
