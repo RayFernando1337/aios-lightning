@@ -2,7 +2,7 @@ import { MAX_SELECTED } from "@/convex/lib/limits";
 
 /**
  * The edit-me file for running your own event. Name the night, the venue, the
- * dry-run rule, and the house rules here; the landing page, apply flow, and
+ * dry-run rule, the house rules, and the hero still here. The landing page, apply flow, and
  * board pick them up. The shipped values are the AiOS SF lightning night at
  * Convex HQ, left in as a worked example.
  *
@@ -18,6 +18,8 @@ export const EVENT = {
   where: "Convex HQ, San Francisco",
   dryRun:
     "Dry run with Ray 20 to 30 minutes before lightning starts. Cables, audio, and your first 10 seconds. If it does not run at the dry run, it does not go on stage.",
+  heroImage:
+    "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=2000&q=80",
 } as const;
 
 export const FLOW = [

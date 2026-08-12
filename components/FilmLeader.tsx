@@ -1,26 +1,35 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-
-const STORAGE_KEY = "admit-leader-played";
+import { LEADER_COOKIE } from "@/lib/leader";
 
 function subscribe() {
   return () => {};
 }
 
 function getSnapshot() {
-  return (
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-    sessionStorage.getItem(STORAGE_KEY) === "1"
-  );
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function getServerSnapshot() {
   return false;
 }
 
-export default function FilmLeader() {
-  const skipped = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+function markPlayed() {
+  document.cookie = `${LEADER_COOKIE}=1; path=/; max-age=86400; SameSite=Lax`;
+}
+
+export default function FilmLeader({
+  alreadyPlayed,
+}: {
+  alreadyPlayed: boolean;
+}) {
+  const reduceMotion = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
+  const skipped = alreadyPlayed || reduceMotion;
   const [count, setCount] = useState(3);
   const [opening, setOpening] = useState(false);
   const [gone, setGone] = useState(false);
@@ -36,7 +45,7 @@ export default function FilmLeader() {
     const open = window.setTimeout(() => setOpening(true), 2100);
     const hide = window.setTimeout(() => {
       setGone(true);
-      sessionStorage.setItem(STORAGE_KEY, "1");
+      markPlayed();
     }, 3100);
 
     return () => {
@@ -52,7 +61,7 @@ export default function FilmLeader() {
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-hidden ${
+      className={`film-leader fixed inset-0 z-50 overflow-hidden ${
         opening ? "pointer-events-none" : ""
       }`}
       aria-hidden="true"

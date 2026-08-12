@@ -8,6 +8,7 @@
   --color-admit: #ef493c;
   --color-cream: #e7e2d8;
   --color-paper: #fffdf8;
+  --color-velvet: #8e1d13;
   --color-muted: rgb(245 238 220 / 0.56);
   --color-line: rgb(245 238 220 / 0.14);
 }
@@ -96,7 +97,7 @@ body::before {
 
 .film-edge {
   height: 34px;
-  background-color: #0c0c0c;
+  background-color: var(--color-ink);
   background-image: radial-gradient(
     circle at 50% 50%,
     var(--color-ink) 5px,
@@ -183,7 +184,7 @@ a:hover .ticket-icon {
   position: relative;
   overflow: hidden;
   aspect-ratio: 2 / 3;
-  background: #101010;
+  background: var(--color-ink);
   border: 1px solid var(--color-line);
 }
 
@@ -291,7 +292,11 @@ a:hover .ticket-icon {
   }
 
   .ticket-btn::before {
-    transform: none;
+    transform: scaleX(0);
+  }
+
+  .film-leader {
+    display: none !important;
   }
 
   .poster-pick {

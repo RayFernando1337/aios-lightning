@@ -36,7 +36,7 @@ export default function NowPlayingStrip() {
           >
             <div
               className={`poster-fill flex h-full flex-col justify-between p-4 ${
-                entry ? "bg-gradient-to-b from-[#2a0d0a] to-ink" : "bg-[#101010]"
+                entry ? "bg-gradient-to-b from-admit/40 to-ink" : "bg-ink"
               }`}
             >
               <p className="font-mono text-[10px] tracking-[0.28em] text-muted">

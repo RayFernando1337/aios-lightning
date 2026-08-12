@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import ApplyCta from "@/components/ApplyCta";
 import FilmLeader from "@/components/FilmLeader";
@@ -5,20 +6,23 @@ import NowPlayingStrip from "@/components/NowPlayingStrip";
 import SiteHeader from "@/components/SiteHeader";
 import { MAX_SELECTED } from "@/convex/lib/limits";
 import { EVENT, FLOW, RULES } from "@/lib/content";
+import { LEADER_COOKIE } from "@/lib/leader";
 import { buttonSecondary, eyebrow } from "@/lib/styles";
 
-export default function Home() {
+export default async function Home() {
+  const alreadyPlayed =
+    (await cookies()).get(LEADER_COOKIE)?.value === "1";
+
   return (
     <>
-      <FilmLeader />
+      <FilmLeader alreadyPlayed={alreadyPlayed} />
       <SiteHeader />
 
       <section className="relative min-h-[100svh]">
         <div
           className="absolute inset-0 bg-ink bg-cover bg-center"
           style={{
-            backgroundImage:
-              "linear-gradient(rgb(23 23 23 / 0.35), rgb(23 23 23 / 0.35)), url(https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=2000&q=80)",
+            backgroundImage: `linear-gradient(rgb(23 23 23 / 0.35), rgb(23 23 23 / 0.35)), url(${EVENT.heroImage})`,
           }}
         />
         <div className="projector-scrim absolute inset-0" />
@@ -28,7 +32,7 @@ export default function Home() {
             <p className="marquee-chip">{EVENT.when}</p>
             <h1 className="font-display mt-6 text-[clamp(4.2rem,14vw,11rem)] leading-[0.86] tracking-[-0.035em] text-paper">
               LIGHTNING
-              <span className="mt-1 block text-transparent [-webkit-text-stroke:2px_#fffdf8]">
+              <span className="mt-1 block text-transparent [-webkit-text-stroke:2px_var(--color-paper)]">
                 NIGHT
               </span>
             </h1>
@@ -67,7 +71,7 @@ export default function Home() {
       </section>
 
       <section className="relative bg-cream px-[var(--pad)] py-24 text-ink sm:py-32">
-        <p className="text-center font-mono text-[11px] font-bold tracking-[0.3em] text-[#8e1d13] uppercase">
+        <p className="text-center font-mono text-[11px] font-bold tracking-[0.3em] text-velvet uppercase">
           House rules
         </p>
         <h2 className="font-display mx-auto mt-4 max-w-4xl text-center text-5xl tracking-[-0.035em] sm:text-7xl">
@@ -76,7 +80,7 @@ export default function Home() {
         <ol className="mx-auto mt-14 grid max-w-4xl gap-8 sm:grid-cols-2">
           {RULES.map((rule, index) => (
             <li key={rule.title}>
-              <p className="font-display text-5xl tracking-[-0.035em] text-[#8e1d13]">
+              <p className="font-display text-5xl tracking-[-0.035em] text-velvet">
                 {String(index + 1).padStart(2, "0")}
               </p>
               <p className="mt-3 text-xl font-semibold">{rule.title}</p>
