@@ -48,11 +48,7 @@ const BRIEF_SPEC = [
   },
 ] as const;
 
-/**
- * `noSlides`, `noPitch`, and `readyIn60s` are deliberately absent: `submit` is
- * their only writer and it throws unless all three are true, so every stored
- * row has the same three values and they cannot separate one demo from another.
- */
+/** No pledge fields: `submit` rejects a false one, so all three are always true. */
 export function toTriageCard(submission: Doc<"submissions">): TriageCard {
   return {
     id: submission._id,
@@ -204,7 +200,7 @@ export function SubmissionRow({
 
   return (
     <div>
-      {/* Three lines holds the 90 character title limit, so it never gets cut. */}
+      {/* Three lines is what FIELD_LIMITS.demoTitle wraps to at 390px. */}
       <h3 className="line-clamp-3 font-semibold break-words text-zinc-50">
         {card.title}
       </h3>
@@ -221,8 +217,7 @@ export function SubmissionRow({
           <div key={block.key}>
             <dt className="sr-only">{block.label}</dt>
             <dd
-              // Collapsed, the answers flow as one paragraph so an applicant's
-              // blank lines cannot spend the whole line budget on nothing.
+              // Not pre-line when collapsed: blank lines would spend the clamp.
               className={`${
                 expanded
                   ? "whitespace-pre-line"

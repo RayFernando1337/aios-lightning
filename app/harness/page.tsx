@@ -9,13 +9,7 @@ import { SubmissionStatus } from "@/lib/status";
 import { card } from "@/lib/styles";
 import { FIXTURES } from "./fixtures";
 
-/**
- * The host card at any viewport without Clerk, Convex, or nine real applicants.
- * `/host` needs a signed in allowlisted account and live data, which puts the
- * one screen a host makes decisions on out of reach of a quick check. The
- * fixtures pin every text field to its `FIELD_LIMITS` maximum, which is the
- * case that decides whether the card layout holds.
- */
+/** Exists because /host needs a Clerk host session and a live Convex deployment. */
 export default function Harness() {
   const [rows, setRows] = useState(FIXTURES);
   const [refused, setRefused] = useState<Id<"submissions"> | null>(null);
@@ -39,8 +33,6 @@ export default function Harness() {
   }
 
   return (
-    // The browser harness waits on this before clicking, so it never drives a
-    // tree that React has not hydrated yet.
     <main
       data-harness-ready="true"
       className="mx-auto w-full max-w-2xl px-5 pt-8 pb-16"

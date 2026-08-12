@@ -1,7 +1,6 @@
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { FIELD_LIMITS } from "@/convex/lib/limits";
 
-/** Grow `seed` with realistic filler until it is exactly `length` characters. */
 function toExactly(seed: string, length: number): string {
   const filler =
     " then the same loop again on device with the network switched off";
@@ -66,8 +65,6 @@ export const FIXTURES: Doc<"submissions">[] = [
       "How to ship a Core ML model without blowing up your app download size.",
     status: "shortlisted",
   }),
-  // Worst case for layout: every text field pinned to its hard limit, with the
-  // newlines applicants actually type.
   row(2, {
     displayName: toExactly("Alexandra Constantina Papadopoulos", FIELD_LIMITS.displayName),
     demoTitle: toExactly(
