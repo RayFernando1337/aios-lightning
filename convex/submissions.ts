@@ -11,10 +11,14 @@ const submissionDoc = v.object({
   ...submissionFields,
 });
 
+// The public board contract. Only fields listed here leave the deployment,
+// so email, userId, and host-only state stay off the wire by construction.
 const boardEntry = v.object({
   _id: v.id("submissions"),
   displayName: v.string(),
   demoTitle: v.string(),
+  whatYoullShowLive: v.string(),
+  takeaway: v.string(),
 });
 
 /** The signed in applicant's own submission, or null before they apply. */
@@ -159,7 +163,7 @@ export const setStatus = mutation({
   },
 });
 
-/** Public running order for the room: selected names and titles only. */
+/** Public running order for the room: who is up and what they will demo. */
 export const board = query({
   args: {},
   returns: v.array(boardEntry),
@@ -179,6 +183,8 @@ export const board = query({
         _id: submission._id,
         displayName: submission.displayName,
         demoTitle: submission.demoTitle,
+        whatYoullShowLive: submission.whatYoullShowLive,
+        takeaway: submission.takeaway,
       }));
   },
 });

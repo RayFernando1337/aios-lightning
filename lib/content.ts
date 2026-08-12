@@ -1,5 +1,17 @@
 import { MAX_SELECTED } from "@/convex/lib/limits";
 
+/**
+ * The edit-me file for running your own event. Name the night, the venue, the
+ * dry-run rule, and the house rules here; the landing page, apply flow, and
+ * board pick them up. The shipped values are the AiOS SF lightning night at
+ * Convex HQ, left in as a worked example.
+ *
+ * Two knobs live elsewhere: capacity is `MAX_SELECTED` in
+ * `convex/lib/limits.ts`, and the brand name also appears in `app/layout.tsx`
+ * metadata, `SiteHeader`, and the page titles (search for "AiOS SF" when
+ * rebranding).
+ */
+
 export const EVENT = {
   brand: "AiOS SF · Lightning",
   when: "Tonight, Tue Aug 11",
@@ -7,6 +19,13 @@ export const EVENT = {
   dryRun:
     "Dry run with Ray 20 to 30 minutes before lightning starts. Cables, audio, and your first 10 seconds. If it does not run at the dry run, it does not go on stage.",
 } as const;
+
+export const FLOW = [
+  "Apply below. It takes about a minute.",
+  `Hosts pick up to ${MAX_SELECTED} demos tonight.`,
+  "Dry run with Ray before we start.",
+  "Plug in, show it running, sit down.",
+] as const;
 
 export const RULES = [
   {
