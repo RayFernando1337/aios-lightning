@@ -16,7 +16,7 @@ function getSnapshot() {
 }
 
 function getServerSnapshot() {
-  return true;
+  return false;
 }
 
 export default function FilmLeader() {
@@ -51,7 +51,12 @@ export default function FilmLeader() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" aria-hidden="true">
+    <div
+      className={`fixed inset-0 z-50 overflow-hidden ${
+        opening ? "pointer-events-none" : ""
+      }`}
+      aria-hidden="true"
+    >
       <div
         className={`velvet absolute inset-y-0 left-0 w-1/2 shadow-[inset_-40px_0_60px_rgba(0,0,0,.55)] transition-transform duration-700 ease-in ${
           opening ? "-translate-x-[104%]" : "translate-x-0"

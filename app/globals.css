@@ -76,7 +76,7 @@ body::before {
 }
 
 .ticket-btn:disabled::before {
-  transform: none;
+  transform: scaleX(0);
 }
 
 .velvet {
