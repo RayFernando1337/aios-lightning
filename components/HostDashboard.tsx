@@ -17,6 +17,54 @@ const ACTION_ORDER: SubmissionStatus[] = [
   "rejected",
 ];
 
+type BriefBlock = {
+  key: "live" | "takeaway";
+  label: string;
+  text: string;
+  clampClass: "line-clamp-4" | "line-clamp-2";
+};
+
+type TriageCard = {
+  id: Id<"submissions">;
+  status: SubmissionStatus;
+  title: string;
+  presenter: string;
+  brief: readonly BriefBlock[];
+  email: string | null;
+};
+
+const BRIEF_SPEC = [
+  {
+    key: "live",
+    label: "Live",
+    field: "whatYoullShowLive",
+    clampClass: "line-clamp-4",
+  },
+  {
+    key: "takeaway",
+    label: "Takeaway",
+    field: "takeaway",
+    clampClass: "line-clamp-2",
+  },
+] as const;
+
+/** No pledge fields: `submit` rejects a false one, so all three are always true. */
+export function toTriageCard(submission: Doc<"submissions">): TriageCard {
+  return {
+    id: submission._id,
+    status: submission.status,
+    title: submission.demoTitle,
+    presenter: submission.displayName,
+    brief: BRIEF_SPEC.map((spec) => ({
+      key: spec.key,
+      label: spec.label,
+      text: submission[spec.field],
+      clampClass: spec.clampClass,
+    })),
+    email: submission.email || null,
+  };
+}
+
 type Filter = SubmissionStatus | "all";
 
 export default function HostDashboard() {
@@ -60,6 +108,7 @@ function Triage() {
     filter === "all"
       ? sorted
       : sorted.filter((submission) => submission.status === filter);
+  const cards = visible.map(toTriageCard);
 
   async function changeStatus(
     submissionId: Id<"submissions">,
@@ -114,19 +163,19 @@ function Triage() {
         </div>
       </div>
 
-      {visible.length === 0 ? (
+      {cards.length === 0 ? (
         <p className={`${card} text-zinc-400`}>Nothing here yet.</p>
       ) : (
         <ul className="space-y-3">
-          {visible.map((submission) => (
-            <li key={submission._id} className={card}>
+          {cards.map((triageCard) => (
+            <li key={triageCard.id} className={card}>
               <SubmissionRow
-                submission={submission}
-                pending={pendingId === submission._id}
+                card={triageCard}
+                pending={pendingId === triageCard.id}
                 failure={
-                  failure?.id === submission._id ? failure.message : null
+                  failure?.id === triageCard.id ? failure.message : null
                 }
-                onChange={(status) => changeStatus(submission._id, status)}
+                onChange={(status) => changeStatus(triageCard.id, status)}
               />
             </li>
           ))}
@@ -136,59 +185,78 @@ function Triage() {
   );
 }
 
-function SubmissionRow({
-  submission,
+export function SubmissionRow({
+  card,
   pending,
   failure,
   onChange,
 }: {
-  submission: Doc<"submissions">;
+  card: TriageCard;
   pending: boolean;
   failure: string | null;
   onChange: (status: SubmissionStatus) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-zinc-50">
-            {submission.demoTitle}
-          </p>
-          <p className="mt-0.5 truncate text-sm text-zinc-400">
-            {submission.displayName}
-          </p>
-        </div>
-        <StatusChip status={submission.status} />
+      <h2 className="font-semibold break-words text-zinc-50">{card.title}</h2>
+
+      <div className="mt-1 flex items-start justify-between gap-3">
+        <p className="min-w-0 text-sm break-words text-zinc-400">
+          {card.presenter}
+        </p>
+        <StatusChip status={card.status} />
       </div>
 
-      <details className="group mt-3">
-        <summary className="cursor-pointer list-none text-sm font-medium text-amber-300/90 hover:text-amber-200">
-          <span className="group-open:hidden">Show details</span>
-          <span className="hidden group-open:inline">Hide details</span>
-        </summary>
+      <dl className="mt-3 space-y-2 border-t border-white/10 pt-3">
+        {card.brief.map((block) => (
+          <div key={block.key}>
+            <dt className="sr-only">{block.label}</dt>
+            <dd
+              // Not pre-line when collapsed: blank lines would spend the clamp.
+              className={`${
+                expanded
+                  ? "whitespace-pre-line"
+                  : `${block.clampClass} whitespace-normal`
+              } text-sm leading-5 break-words text-zinc-300`}
+            >
+              <span
+                aria-hidden="true"
+                className="font-semibold text-amber-300/90 uppercase"
+              >
+                {block.label} ·{" "}
+              </span>
+              {block.text}
+            </dd>
+          </div>
+        ))}
+      </dl>
 
-        <div className="mt-3 space-y-3 border-t border-white/10 pt-3 text-sm">
-          <div>
-            <p className="font-semibold text-zinc-300">Showing live</p>
-            <p className="mt-1 whitespace-pre-line text-zinc-400">
-              {submission.whatYoullShowLive}
-            </p>
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-300">Takeaway</p>
-            <p className="mt-1 whitespace-pre-line text-zinc-400">
-              {submission.takeaway}
-            </p>
-          </div>
-          <p className="font-mono text-xs break-all text-zinc-500">
-            {submission.email || "no email on token"}
-          </p>
-        </div>
-      </details>
+      {/* Only the email is truly hidden when collapsed. `line-clamp` clips the
+          answers visually but leaves them in the accessibility tree, so this
+          controls the email and says so. */}
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={`contact-${card.id}`}
+        onClick={() => setExpanded((current) => !current)}
+        className="mt-1 min-h-11 py-3 text-sm font-medium text-amber-300/90 hover:text-amber-200"
+      >
+        {expanded ? "Show less" : "Full answers and email"}
+      </button>
+
+      <p
+        id={`contact-${card.id}`}
+        hidden={!expanded}
+        className="font-mono text-xs break-all text-zinc-500"
+      >
+        {card.email ?? "no email on token"}
+      </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {ACTION_ORDER.map((status) => {
-          const isCurrent = submission.status === status;
+          const isCurrent = card.status === status;
           return (
             <button
               key={status}
