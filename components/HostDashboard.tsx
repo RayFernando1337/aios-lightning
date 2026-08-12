@@ -136,7 +136,7 @@ function Triage() {
   );
 }
 
-function SubmissionRow({
+export function SubmissionRow({
   submission,
   pending,
   failure,
