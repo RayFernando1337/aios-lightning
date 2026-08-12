@@ -9,14 +9,14 @@ export default function BoardList() {
   const entries = useQuery(api.submissions.board);
 
   if (entries === undefined) {
-    return <p className="text-zinc-400">Loading the lineup...</p>;
+    return <p className="text-muted">Loading the lineup...</p>;
   }
 
   if (entries.length === 0) {
     return (
       <div className={card}>
         <p className="font-semibold">No picks up yet.</p>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1 text-sm text-muted">
           This page updates itself the moment a host locks a slot.
         </p>
       </div>
@@ -25,22 +25,22 @@ export default function BoardList() {
 
   return (
     <>
-      <p className="text-sm text-zinc-500">
+      <p className="font-mono text-[11px] tracking-[0.22em] text-muted uppercase">
         {entries.length} of {MAX_SELECTED} slots locked. Top to bottom is the
         running order.
       </p>
 
-      <ol className="mt-4 space-y-4">
+      <ol className="mt-6 space-y-4">
         {entries.map((entry, index) => (
           <li key={entry._id} className={`${card} flex items-start gap-4`}>
-            <span className="font-mono text-xl font-bold text-amber-300 sm:text-3xl">
-              {index + 1}
+            <span className="font-display text-4xl tracking-[-0.035em] text-admit sm:text-6xl">
+              {String(index + 1).padStart(2, "0")}
             </span>
             <div className="min-w-0">
-              <p className="text-lg font-bold tracking-tight text-zinc-50 sm:text-3xl">
+              <p className="font-display text-3xl tracking-[-0.035em] text-paper sm:text-5xl">
                 {entry.demoTitle}
               </p>
-              <p className="mt-1 text-zinc-300 sm:text-lg">
+              <p className="mt-2 font-mono text-[11px] tracking-[0.22em] text-cream/80 uppercase">
                 {entry.displayName}
               </p>
               {/* The deployed Convex functions can lag this frontend (deploy
@@ -48,14 +48,14 @@ export default function BoardList() {
                   undefined at runtime despite the validator type. Degrade to
                   the title-and-name card instead of dangling labels. */}
               {entry.whatYoullShowLive ? (
-                <p className="mt-3 whitespace-pre-line text-zinc-200 sm:text-lg">
+                <p className="mt-3 whitespace-pre-line text-cream/85 sm:text-lg">
                   {entry.whatYoullShowLive}
                 </p>
               ) : null}
               {entry.takeaway ? (
-                <p className="mt-3 text-sm text-zinc-300 sm:text-base">
-                  <span className="font-semibold text-amber-300">
-                    Takeaway:{" "}
+                <p className="mt-3 text-sm text-cream/80 sm:text-base">
+                  <span className="font-mono text-[11px] font-bold tracking-[0.22em] text-admit uppercase">
+                    Takeaway ·{" "}
                   </span>
                   {entry.takeaway}
                 </p>

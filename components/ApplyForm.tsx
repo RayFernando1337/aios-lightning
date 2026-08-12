@@ -31,13 +31,13 @@ export default function ApplyForm() {
   return (
     <>
       <AuthLoading>
-        <p className="text-zinc-400">Checking your session...</p>
+        <p className="text-muted">Checking your session...</p>
       </AuthLoading>
 
       <Unauthenticated>
         <div className={card}>
           <p className="font-semibold">Sign in to apply.</p>
-          <p className="mt-1 text-sm text-zinc-400">
+          <p className="mt-1 text-sm text-muted">
             One account, one slot. It keeps the list honest.
           </p>
           <div className="mt-4">
@@ -61,7 +61,7 @@ function ApplyFlow() {
   const [editing, setEditing] = useState(false);
 
   if (mine === undefined) {
-    return <p className="text-zinc-400">Loading your application...</p>;
+    return <p className="text-muted">Loading your application...</p>;
   }
 
   if (mine !== null && !editing) {
@@ -97,30 +97,34 @@ function SubmittedCard({
             <p className={eyebrow}>
               {isOut ? "Your application" : "You are in"}
             </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">
+            <h2 className="font-display mt-2 text-3xl tracking-[-0.035em]">
               {submission.demoTitle}
             </h2>
-            <p className="mt-1 text-sm text-zinc-400">
+            <p className="mt-1 text-sm text-muted">
               {submission.displayName}
             </p>
           </div>
           <StatusChip status={submission.status} />
         </div>
 
-        <p className="mt-4 text-zinc-200">
+        <p className="mt-4 text-cream/90">
           {APPLICANT_NEXT_STEP[submission.status]}
         </p>
 
-        <dl className="mt-5 space-y-4 border-t border-white/10 pt-5 text-sm">
+        <dl className="mt-5 space-y-4 border-t border-line pt-5 text-sm">
           <div>
-            <dt className="font-semibold text-zinc-300">Showing live</dt>
-            <dd className="mt-1 whitespace-pre-line text-zinc-400">
+            <dt className="font-mono text-[11px] tracking-[0.22em] text-paper uppercase">
+              Showing live
+            </dt>
+            <dd className="mt-1 whitespace-pre-line text-muted">
               {submission.whatYoullShowLive}
             </dd>
           </div>
           <div>
-            <dt className="font-semibold text-zinc-300">Takeaway</dt>
-            <dd className="mt-1 whitespace-pre-line text-zinc-400">
+            <dt className="font-mono text-[11px] tracking-[0.22em] text-paper uppercase">
+              Takeaway
+            </dt>
+            <dd className="mt-1 whitespace-pre-line text-muted">
               {submission.takeaway}
             </dd>
           </div>
@@ -128,12 +132,12 @@ function SubmittedCard({
       </div>
 
       {!isOut && (
-        <div className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.07] p-5 sm:p-6">
+        <div className="border border-admit/40 bg-admit/10 p-5 sm:p-6">
           <p className={eyebrow}>Two things left</p>
-          <ol className="mt-3 space-y-2 text-sm text-zinc-200">
+          <ol className="mt-3 space-y-2 text-sm text-cream/90">
             <li>
               1. Hosts pick up to {MAX_SELECTED} demos. Watch the{" "}
-              <Link href="/board" className="underline hover:text-amber-200">
+              <Link href="/board" className="underline hover:text-paper">
                 board
               </Link>
               .
@@ -304,7 +308,7 @@ function Fields({
       </div>
 
       {error !== null && (
-        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <p className="border border-admit/40 bg-admit/10 px-4 py-3 text-sm text-paper">
           {error}
         </p>
       )}
@@ -350,10 +354,10 @@ function Checkbox({
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-0.5 size-5 shrink-0 rounded border-white/20 accent-amber-300"
+        className="mt-0.5 size-5 shrink-0 border-line accent-admit"
         required
       />
-      <span className="text-sm text-zinc-200">{label}</span>
+      <span className="text-sm text-cream/90">{label}</span>
     </label>
   );
 }

@@ -35,7 +35,7 @@ export default function Harness() {
   return (
     <main
       data-harness-ready="true"
-      className="mx-auto w-full max-w-2xl px-5 pt-8 pb-16"
+      className="mx-auto w-full max-w-2xl px-[var(--pad)] pt-8 pb-16"
     >
       <script
         id="fixtures"

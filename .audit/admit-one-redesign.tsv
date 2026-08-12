@@ -1,0 +1,5 @@
+ts	phase	decision	why	evidence	result
+2026-08-12T17:38:28Z	frame	keep the lightning-night product, restyle it in Admit One cinema language	the attached design is a theater, the repo is a demo night; replacing the product would throw away apply/host/board	README.md:1	open
+2026-08-12T17:38:28Z	frame	architect skipped: visual language and product are both already specified	DESIGN-2.md settles chrome; the existing routes settle behavior; arena would re-litigate a settled mapping	DESIGN-2.md	skipped
+2026-08-12T17:41:33Z	tokens	CSS custom properties are the design table, lib/styles.ts is the class registry	one token table so pages cannot drift back to amber zinc	app/globals.css,lib/styles.ts	open
+2026-08-12T17:41:33Z	landing	landing is the ritual, inner pages stay tools	attendees get the theater, hosts on a phone still need dense triage	app/page.tsx,components/HostDashboard.tsx	open

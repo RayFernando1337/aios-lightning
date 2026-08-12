@@ -3,13 +3,12 @@ import HostDashboard from "@/components/HostDashboard";
 import HostErrorBoundary from "@/components/HostErrorBoundary";
 import SiteHeader from "@/components/SiteHeader";
 import { isHostEmail } from "@/convex/lib/hosts";
-import { card, eyebrow } from "@/lib/styles";
+import { card, eyebrow, pageMain } from "@/lib/styles";
 
 export const metadata = {
   title: "Host · AiOS SF Lightning",
 };
 
-// Per host, per request. Never prerendered.
 export const dynamic = "force-dynamic";
 
 type Gate =
@@ -55,13 +54,13 @@ export default async function HostPage() {
     <>
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-2xl px-5 pt-8 pb-16">
+      <main className={pageMain}>
         <p className={eyebrow}>Host</p>
-        <h1 className="mt-2 text-3xl font-black tracking-tight">
-          Tonight&apos;s lineup
+        <h1 className="font-display mt-3 text-5xl tracking-[-0.035em]">
+          TONIGHT&apos;S LINEUP
         </h1>
 
-        <div className="mt-6">
+        <div className="mt-8">
           {gate.allowed ? (
             <HostErrorBoundary>
               <HostDashboard />
@@ -69,7 +68,7 @@ export default async function HostPage() {
           ) : (
             <div className={card}>
               <p className="font-semibold">{gate.title}</p>
-              <p className="mt-1 text-sm text-zinc-400">{gate.detail}</p>
+              <p className="mt-1 text-sm text-muted">{gate.detail}</p>
             </div>
           )}
         </div>

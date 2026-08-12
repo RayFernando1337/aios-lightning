@@ -1,19 +1,27 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Anton, Inter, Martian_Mono } from "next/font/google";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import SetupNotice from "@/components/SetupNotice";
 import { missingPublicEnv } from "@/lib/env";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const anton = Anton({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-anton",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const martian = Martian_Mono({
+  subsets: ["latin"],
+  variable: "--font-martian",
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -23,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#08090c",
+  themeColor: "#171717",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -32,9 +40,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${anton.variable} ${inter.variable} ${martian.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col font-sans">
+      <body className="flex min-h-full flex-col overflow-x-hidden bg-ink font-sans text-paper">
         {missing.length > 0 ? (
           <SetupNotice missing={missing} />
         ) : (
