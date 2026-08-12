@@ -245,7 +245,8 @@ function Fields({
               What you will show live
             </label>
             <p className={fieldHint}>
-              What is on screen, what is running, and on what device.
+              What is on screen, what is running, and on what device. Open with
+              it. Hosts pick from the first couple of lines.
             </p>
             <textarea
               id="whatYoullShowLive"
