@@ -36,8 +36,8 @@ where they read data, and every Convex function checks again on the backend.
 
 `HOST_EMAILS` is read in two runtimes on purpose. Next.js uses it to gate the
 `/host` page, Convex uses it to reject host mutations from anyone else. Set it in
-both places. `smile@rayfernando.ai` is allowlisted in code as a fallback, so the
-host view still works if the variable is never set.
+both places. There is no fallback in code: while the variable is unset, nobody
+can open `/host`, and the page tells you which address to add.
 
 The public keys are inlined at build time, so redeploy after changing them. If
 either public key is missing, every page renders a short setup checklist instead
@@ -66,7 +66,7 @@ npm install
 
    ```bash
    npx convex env set CLERK_JWT_ISSUER_DOMAIN https://verb-noun-00.clerk.accounts.dev
-   npx convex env set HOST_EMAILS "smile@rayfernando.ai"
+   npx convex env set HOST_EMAILS "you@example.com"
    ```
 
 4. Copy `.env.example` to `.env.local` and paste the Clerk keys plus
