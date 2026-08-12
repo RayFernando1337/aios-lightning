@@ -18,10 +18,10 @@ export const STATUS_LABELS: Record<SubmissionStatus, string> = {
 };
 
 export const STATUS_CHIP_STYLES: Record<SubmissionStatus, string> = {
-  submitted: "border-white/15 bg-white/10 text-zinc-200",
-  shortlisted: "border-sky-300/30 bg-sky-400/15 text-sky-200",
-  selected: "border-amber-300/40 bg-amber-300/20 text-amber-200",
-  rejected: "border-rose-400/25 bg-rose-500/10 text-rose-200",
+  submitted: "border-line bg-paper/10 text-cream",
+  shortlisted: "border-cream/40 bg-cream/15 text-cream",
+  selected: "border-admit/60 bg-admit/20 text-paper",
+  rejected: "border-line bg-paper/5 text-muted",
 };
 
 /** What the applicant should do next, by status. */

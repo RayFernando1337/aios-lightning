@@ -71,7 +71,7 @@ export default function HostDashboard() {
   return (
     <>
       <AuthLoading>
-        <p className="text-zinc-400">Checking your session...</p>
+        <p className="text-muted">Checking your session...</p>
       </AuthLoading>
       <Authenticated>
         <Triage />
@@ -94,7 +94,7 @@ function Triage() {
   } | null>(null);
 
   if (submissions === undefined) {
-    return <p className="text-zinc-400">Loading submissions...</p>;
+    return <p className="text-muted">Loading submissions...</p>;
   }
 
   const counts = countByStatus(submissions);
@@ -127,21 +127,21 @@ function Triage() {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-14 z-10 -mx-5 border-b border-white/10 bg-[#08090c]/95 px-5 py-3 backdrop-blur">
+      <div className="sticky top-24 z-10 -mx-[var(--pad)] border-b border-line bg-ink/95 px-[var(--pad)] py-3 backdrop-blur">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted">
             <span
               className={
                 selectedCount >= MAX_SELECTED
-                  ? "font-bold text-amber-300"
-                  : "font-bold text-zinc-100"
+                  ? "font-bold text-admit"
+                  : "font-bold text-paper"
               }
             >
               {selectedCount} of {MAX_SELECTED}
             </span>{" "}
             slots picked
           </p>
-          <p className="text-sm text-zinc-500">
+          <p className="font-mono text-[11px] tracking-[0.18em] text-muted uppercase">
             {submissions.length} applied
           </p>
         </div>
@@ -164,7 +164,7 @@ function Triage() {
       </div>
 
       {cards.length === 0 ? (
-        <p className={`${card} text-zinc-400`}>Nothing here yet.</p>
+        <p className={`${card} text-muted`}>Nothing here yet.</p>
       ) : (
         <ul className="space-y-3">
           {cards.map((triageCard) => (
@@ -200,16 +200,18 @@ export function SubmissionRow({
 
   return (
     <div>
-      <h2 className="font-semibold break-words text-zinc-50">{card.title}</h2>
+      <h2 className="font-display text-2xl tracking-[-0.035em] break-words text-paper">
+        {card.title}
+      </h2>
 
       <div className="mt-1 flex items-start justify-between gap-3">
-        <p className="min-w-0 text-sm break-words text-zinc-400">
+        <p className="min-w-0 font-mono text-[11px] tracking-[0.18em] break-words text-muted uppercase">
           {card.presenter}
         </p>
         <StatusChip status={card.status} />
       </div>
 
-      <dl className="mt-3 space-y-2 border-t border-white/10 pt-3">
+      <dl className="mt-3 space-y-2 border-t border-line pt-3">
         {card.brief.map((block) => (
           <div key={block.key}>
             <dt className="sr-only">{block.label}</dt>
@@ -219,11 +221,11 @@ export function SubmissionRow({
                 expanded
                   ? "whitespace-pre-line"
                   : `${block.clampClass} whitespace-normal`
-              } text-sm leading-5 break-words text-zinc-300`}
+              } text-sm leading-5 break-words text-cream/85`}
             >
               <span
                 aria-hidden="true"
-                className="font-semibold text-amber-300/90 uppercase"
+                className="font-mono text-[10px] font-bold tracking-[0.18em] text-admit uppercase"
               >
                 {block.label} ·{" "}
               </span>
@@ -241,7 +243,7 @@ export function SubmissionRow({
         aria-expanded={expanded}
         aria-controls={`contact-${card.id}`}
         onClick={() => setExpanded((current) => !current)}
-        className="mt-1 min-h-11 py-3 text-sm font-medium text-amber-300/90 hover:text-amber-200"
+        className="mt-1 min-h-11 py-3 font-mono text-[11px] font-bold tracking-[0.18em] text-admit uppercase hover:text-paper"
       >
         {expanded ? "Show less" : "Full answers and email"}
       </button>
@@ -249,7 +251,7 @@ export function SubmissionRow({
       <p
         id={`contact-${card.id}`}
         hidden={!expanded}
-        className="font-mono text-xs break-all text-zinc-500"
+        className="font-mono text-xs break-all text-muted"
       >
         {card.email ?? "no email on token"}
       </p>
@@ -263,10 +265,10 @@ export function SubmissionRow({
               type="button"
               disabled={pending || isCurrent}
               onClick={() => onChange(status)}
-              className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+              className={`min-h-11 border px-3 py-2 font-mono text-[11px] font-bold tracking-[0.14em] uppercase transition disabled:cursor-not-allowed ${
                 isCurrent
-                  ? "border-amber-300/50 bg-amber-300/20 text-amber-200"
-                  : "border-white/15 bg-white/5 text-zinc-200 hover:bg-white/10 disabled:opacity-40"
+                  ? "border-admit/70 bg-admit/25 text-paper"
+                  : "border-line bg-paper/5 text-cream hover:bg-paper/10 disabled:opacity-40"
               }`}
             >
               {STATUS_LABELS[status]}
@@ -276,7 +278,7 @@ export function SubmissionRow({
       </div>
 
       {failure !== null && (
-        <p className="mt-3 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <p className="mt-3 border border-admit/40 bg-admit/10 px-4 py-3 text-sm text-paper">
           {failure}
         </p>
       )}
@@ -297,10 +299,10 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+      className={`shrink-0 rounded-full border px-3 py-1.5 font-mono text-[11px] font-bold tracking-[0.14em] uppercase transition ${
         active
-          ? "border-amber-300/50 bg-amber-300/20 text-amber-200"
-          : "border-white/15 bg-white/5 text-zinc-300 hover:bg-white/10"
+          ? "border-admit/70 bg-admit/25 text-paper"
+          : "border-line bg-paper/5 text-cream hover:bg-paper/10"
       }`}
     >
       {label}

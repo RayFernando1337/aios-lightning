@@ -24,8 +24,8 @@ export default class HostErrorBoundary extends Component<
       return (
         <div className={card}>
           <p className="font-semibold">The host view could not load.</p>
-          <p className="mt-2 text-sm text-rose-200">{this.state.message}</p>
-          <p className="mt-3 text-sm text-zinc-400">
+          <p className="mt-2 text-sm text-paper">{this.state.message}</p>
+          <p className="mt-3 text-sm text-muted">
             HOST_EMAILS has to be set on the Convex deployment too, not only
             here. Check the Convex dashboard, then reload.
           </p>

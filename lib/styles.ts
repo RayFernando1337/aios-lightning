@@ -1,18 +1,22 @@
 export const card =
-  "rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6";
+  "border border-line bg-paper/[0.04] p-5 sm:p-6";
 
 export const buttonPrimary =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-5 py-3 text-base font-semibold text-zinc-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50";
+  "ticket-btn inline-flex items-center justify-center gap-2 border border-paper/30 bg-transparent px-6 py-3 font-mono text-[11px] font-bold tracking-[0.28em] text-paper uppercase disabled:cursor-not-allowed disabled:opacity-50";
 
 export const buttonSecondary =
-  "inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-base font-medium text-zinc-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 border border-line bg-transparent px-6 py-3 font-mono text-[11px] font-bold tracking-[0.28em] text-paper uppercase transition hover:border-paper/40 hover:bg-paper/5 disabled:cursor-not-allowed disabled:opacity-50";
 
 export const input =
-  "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-base text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-amber-300/60 focus:ring-2 focus:ring-amber-300/20";
+  "w-full border border-line bg-ink px-4 py-3 text-base text-paper outline-none transition placeholder:text-muted focus:border-admit";
 
-export const fieldLabel = "block text-sm font-semibold text-zinc-100";
+export const fieldLabel =
+  "block font-mono text-[11px] font-bold tracking-[0.28em] text-paper uppercase";
 
-export const fieldHint = "mt-1 text-sm text-zinc-400";
+export const fieldHint = "mt-1 text-sm text-muted";
 
 export const eyebrow =
-  "text-xs font-semibold tracking-[0.18em] text-amber-300 uppercase";
+  "font-mono text-[11px] font-bold tracking-[0.3em] text-admit uppercase";
+
+export const pageMain =
+  "relative mx-auto w-full max-w-3xl px-[var(--pad)] pt-28 pb-16";

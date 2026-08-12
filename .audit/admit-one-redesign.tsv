@@ -1,0 +1,12 @@
+ts	phase	decision	why	evidence	result
+2026-08-12T17:38:28Z	frame	keep the lightning-night product, restyle it in Admit One cinema language	the attached design is a theater, the repo is a demo night; replacing the product would throw away apply/host/board	README.md:1	open
+2026-08-12T17:38:28Z	frame	architect skipped: visual language and product are both already specified	DESIGN-2.md settles chrome; the existing routes settle behavior; arena would re-litigate a settled mapping	DESIGN-2.md	skipped
+2026-08-12T17:41:33Z	tokens	CSS custom properties are the design table, lib/styles.ts is the class registry	one token table so pages cannot drift back to amber zinc	app/globals.css,lib/styles.ts	open
+2026-08-12T17:41:33Z	landing	landing is the ritual, inner pages stay tools	attendees get the theater, hosts on a phone still need dense triage	app/page.tsx,components/HostDashboard.tsx	open
+2026-08-12T18:06:48Z	verify	landing shows film leader then hero, cream rules, velvet dry run, eight-slot strip, numbered ritual	screenshots of the running Next app, not a compile	/tmp/admit-screens/home-desktop.png,/tmp/admit-screens/leader.png	VERIFIED
+2026-08-12T18:06:48Z	verify	apply board host harness share ink red cream Anton Martian chrome	dummy Clerk leaves apply on session check and host on missing secret, which is the real gate	/tmp/admit-screens/apply-desktop.png,/tmp/admit-screens/host-desktop.png,/tmp/admit-screens/harness-desktop.png	VERIFIED
+2026-08-12T18:06:48Z	polish	ticket mark redrawn, header auth loading says Wait not ellipsis	16px path read as a hamburger in the first chrome shot	components/TicketMark.tsx,components/SiteHeader.tsx	VERIFIED
+2026-08-12T18:15:22Z	follow-up	ce0819e had no trail row: SSR snapshot false, disabled fill scaleX(0), pointer-events none while curtains open	trail review found the commit unlogged	commit:ce0819e	logged
+2026-08-12T18:15:22Z	follow-up	cookie skips leader on SSR, CSS hides it for reduced-motion, ticket fill stays scaleX(0) under reduced-motion	the SSR-false snapshot moved the flash onto return visitors and reduced-motion users	/tmp/admit-screens/leader-reduced.png,/tmp/admit-screens/leader-cookie.png	VERIFIED
+2026-08-12T18:15:22Z	follow-up	hero still lives in lib/content.ts, page colors go through tokens	review caught hardcoded hex and an unsplash URL with no owner	lib/content.ts,app/globals.css	VERIFIED
+2026-08-12T18:15:22Z	follow-up	strip is eight slots in a horizontal scroller, desktop shot showed six	row 6 over-claimed the screenshot	components/NowPlayingStrip.tsx	corrected
