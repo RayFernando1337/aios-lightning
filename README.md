@@ -1,10 +1,23 @@
 # AiOS SF · Lightning
 
-Lightning demo signup for AiOS Meetup SF, hosted at Convex HQ. Eight slots, two
-to three minutes each, working software only.
+Signup and live running order for a lightning-demo night. Applicants apply in
+about a minute, hosts triage from a phone, and the projector board updates as
+slots lock. The copy in this repo is the AiOS Meetup SF night at Convex HQ.
+Fork it and run your own.
 
 Next.js 16 App Router, TypeScript, Tailwind v4, Convex for data, Clerk for auth,
-deployed on Vercel.
+deployed on Vercel. MIT licensed.
+
+## Run your own event
+
+1. Fork or clone the repo.
+2. Rewrite `lib/content.ts`. Every event-specific string (name of the night,
+   venue, dry-run rule, house rules) lives there. To change the slot count,
+   edit `MAX_SELECTED` in `convex/lib/limits.ts`.
+3. Follow [Local setup](#local-setup) to wire Convex and Clerk, and put your
+   own address in `HOST_EMAILS`.
+4. Ship it with [Deploy to Vercel](#deploy-to-vercel), then walk the
+   [night-of checklist](#night-of-checklist).
 
 ## Routes
 
@@ -13,7 +26,7 @@ deployed on Vercel.
 | `/`      | Public               | Rules, the dry run gate, and the apply call to action.                     |
 | `/apply` | Signed in            | One submission per person. Editable, so typos are fixable.                |
 | `/host`  | `HOST_EMAILS` only   | Triage submissions by status. Refuses to select more than 8.              |
-| `/board` | Public               | Running order for the room. Selected names and titles only. Updates live. |
+| `/board` | Public               | Running order for the room: name, demo title, what they will show, and the takeaway. Updates live. |
 
 ## Where auth runs
 
@@ -36,12 +49,29 @@ where they read data, and every Convex function checks again on the backend.
 
 `HOST_EMAILS` is read in two runtimes on purpose. Next.js uses it to gate the
 `/host` page, Convex uses it to reject host mutations from anyone else. Set it in
-both places. There is no fallback in code: while the variable is unset, nobody
+both places. There is no fallback in code. While the variable is unset, nobody
 can open `/host`, and the page tells you which address to add.
 
 The public keys are inlined at build time, so redeploy after changing them. If
 either public key is missing, every page renders a short setup checklist instead
 of the app.
+
+## Security notes
+
+- No key under version control, ever. Secrets live in `.env.local` (gitignored)
+  and in the Vercel and Convex dashboards.
+- `CLERK_SECRET_KEY` is the only true secret here. The two `NEXT_PUBLIC_` values
+  are inlined into the client bundle by design.
+- Clerk Development keys (`pk_test_`, `sk_test_`) are for local work. They run
+  with relaxed security and a visible development banner. Before pointing
+  attendees at a real URL, create a Clerk Production instance and use its
+  `pk_live_` and `sk_live_` keys. See [Deploy to Vercel](#deploy-to-vercel).
+- The board is public by design and shows exactly four fields: name, demo
+  title, what they will show, and the takeaway. The `board` query in
+  `convex/submissions.ts` returns only those fields, so emails and host-only
+  data never leave Convex. Keep it that way when you change it.
+- `HOST_EMAILS` gates the `/host` page in Next.js and, separately, every host
+  function in Convex. The Convex check is the one that protects data.
 
 ## Local setup
 
@@ -98,6 +128,12 @@ as well, not just the dev one.
 Without a deploy key, keep the default `npm run build` and set
 `NEXT_PUBLIC_CONVEX_URL` in Vercel to your Convex deployment URL.
 
+For a real event, use a Clerk Production instance, not Development keys. In the
+Clerk dashboard, create the Production instance (it needs a domain you own),
+put its `pk_live_` and `sk_live_` keys in Vercel, and set
+`CLERK_JWT_ISSUER_DOMAIN` on the production Convex deployment to the production
+Frontend API URL, which looks like `https://clerk.your-domain.com`.
+
 ## Host access and the email claim
 
 Host checks run on the email inside the Convex token. Clerk's Convex integration
@@ -118,8 +154,9 @@ includes an email claim:
 
 `submissions`: `userId`, `email`, `displayName`, `demoTitle`,
 `whatYoullShowLive`, `takeaway`, `noSlides`, `noPitch`, `readyIn60s`, `status`,
-`createdAt`, `updatedAt`. Indexed `by_user` and `by_status`. Status is one of
-`submitted`, `shortlisted`, `selected`, `rejected`.
+`createdAt`, `updatedAt`, `selectedAt`. Indexed `by_user` and `by_status`.
+Status is one of `submitted`, `shortlisted`, `selected`, `rejected`.
+`selectedAt` orders the board and is cleared when a row leaves `selected`.
 
 Rules enforced in `convex/submissions.ts`, not just in the UI:
 
@@ -130,8 +167,10 @@ Rules enforced in `convex/submissions.ts`, not just in the UI:
 
 ## Night of checklist
 
-1. Env vars pasted in Vercel, then redeploy.
-2. Sign in and open `/host`. It should list submissions, not deny you.
+1. Production env vars pasted in Vercel, including live Clerk keys and
+   `HOST_EMAILS`, then redeploy.
+2. Sign in and open `/host`. If it denies you, the email you signed in with is
+   missing from `HOST_EMAILS` in Vercel, on Convex, or both.
 3. Apply once yourself to smoke test the flow, then set that row to rejected.
 4. Point the QR code at the site root.
 5. Put `/board` on the projector. It updates itself as you select.
@@ -145,3 +184,7 @@ npm run lint       # eslint
 npm run typecheck  # route types, then tsc
 npx convex dev     # Convex functions and schema in watch mode
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
