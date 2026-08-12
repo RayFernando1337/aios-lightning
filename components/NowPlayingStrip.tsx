@@ -8,8 +8,13 @@ import { eyebrow } from "@/lib/styles";
 
 export default function NowPlayingStrip() {
   const entries = useQuery(api.submissions.board);
-  const locked = entries ?? [];
-  const slots = Array.from({ length: MAX_SELECTED }, (_, index) => locked[index] ?? null);
+  const slots =
+    entries === undefined
+      ? null
+      : Array.from(
+          { length: MAX_SELECTED },
+          (_, index) => entries[index] ?? null,
+        );
 
   return (
     <section className="relative overflow-hidden py-16 sm:py-24">
@@ -28,33 +33,37 @@ export default function NowPlayingStrip() {
         </Link>
       </div>
 
-      <div className="mt-10 flex gap-4 overflow-x-auto px-[var(--pad)] pb-4">
-        {slots.map((entry, index) => (
-          <article
-            key={entry?._id ?? `open-${index}`}
-            className="poster-card w-[min(42vw,220px)] shrink-0"
-          >
-            <div
-              className={`poster-fill flex h-full flex-col justify-between p-4 ${
-                entry ? "bg-gradient-to-b from-admit/40 to-ink" : "bg-ink"
-              }`}
+      {slots === null ? (
+        <p className="mt-10 px-[var(--pad)] text-muted">Loading the lineup...</p>
+      ) : (
+        <div className="mt-10 flex gap-4 overflow-x-auto px-[var(--pad)] pb-4">
+          {slots.map((entry, index) => (
+            <article
+              key={entry?._id ?? `open-${index}`}
+              className="poster-card w-[min(42vw,220px)] shrink-0"
             >
-              <p className="font-mono text-[10px] tracking-[0.28em] text-muted">
-                {String(index + 1).padStart(2, "0")}
-              </p>
-              <div>
-                <p className="font-display text-2xl leading-none tracking-[-0.035em] text-paper">
-                  {entry?.demoTitle ?? "UNCLAIMED"}
+              <div
+                className={`poster-fill flex h-full flex-col justify-between p-4 ${
+                  entry ? "bg-gradient-to-b from-admit/40 to-ink" : "bg-ink"
+                }`}
+              >
+                <p className="font-mono text-[10px] tracking-[0.28em] text-muted">
+                  {String(index + 1).padStart(2, "0")}
                 </p>
-                <p className="mt-2 font-mono text-[10px] tracking-[0.18em] text-muted uppercase">
-                  {entry?.displayName ?? "Open slot"}
-                </p>
+                <div>
+                  <p className="font-display text-2xl leading-none tracking-[-0.035em] text-paper">
+                    {entry?.demoTitle ?? "UNCLAIMED"}
+                  </p>
+                  <p className="mt-2 font-mono text-[10px] tracking-[0.18em] text-muted uppercase">
+                    {entry?.displayName ?? "Open slot"}
+                  </p>
+                </div>
               </div>
-            </div>
-            <span className="poster-pick">{entry ? "Locked" : "Open"}</span>
-          </article>
-        ))}
-      </div>
+              <span className="poster-pick">{entry ? "Locked" : "Open"}</span>
+            </article>
+          ))}
+        </div>
+      )}
 
       <p className="mt-6 px-[var(--pad)] sm:hidden">
         <Link

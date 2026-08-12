@@ -100,7 +100,7 @@ body::before {
   background-color: var(--color-ink);
   background-image: radial-gradient(
     circle at 50% 50%,
-    var(--color-ink) 5px,
+    var(--color-cream) 5px,
     transparent 6px
   );
   background-size: 26px 34px;

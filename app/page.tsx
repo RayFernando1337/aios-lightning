@@ -18,6 +18,7 @@ export default async function Home() {
       <FilmLeader alreadyPlayed={alreadyPlayed} />
       <SiteHeader />
 
+      <main>
       <section className="relative min-h-[100svh]">
         <div
           className="absolute inset-0 bg-ink bg-cover bg-center"
@@ -125,6 +126,8 @@ export default async function Home() {
           </p>
         </div>
       </section>
+
+      </main>
 
       <footer className="px-[var(--pad)] pb-12 font-mono text-[11px] tracking-[0.18em] text-muted uppercase">
         {EVENT.brand}. Hosted at {EVENT.where}.
