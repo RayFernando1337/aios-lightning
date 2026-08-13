@@ -30,9 +30,14 @@ if [[ -z "${CLERK_JWT_ISSUER_DOMAIN:-}" ]]; then
   exit 0
 fi
 
+# env set needs a configured deployment. init provisions a local backend
+# without pushing, so HOST_EMAILS is on the deployment before --once.
+# https://docs.convex.dev/cli/agent-mode
+bunx convex init
+
 if [[ -n "${HOST_EMAILS:-}" ]]; then
-  bunx convex env set HOST_EMAILS "$HOST_EMAILS" || true
+  bunx convex env set HOST_EMAILS "$HOST_EMAILS"
 fi
 
-bunx convex env set CLERK_JWT_ISSUER_DOMAIN "$CLERK_JWT_ISSUER_DOMAIN" || true
+bunx convex env set CLERK_JWT_ISSUER_DOMAIN "$CLERK_JWT_ISSUER_DOMAIN"
 bunx convex dev --once
