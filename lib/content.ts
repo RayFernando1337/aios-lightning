@@ -20,6 +20,9 @@ export const EVENT = {
     "Dry run with Ray 20 to 30 minutes before lightning starts. Cables, audio, and your first 10 seconds. If it does not run at the dry run, it does not go on stage.",
   heroImage:
     "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=2000&q=80",
+  // The template this event runs on. Point it at your fork if you want the
+  // footer credit to link somewhere else, or drop it from the footer entirely.
+  repoUrl: "https://github.com/RayFernando1337/aios-lightning",
 } as const;
 
 export const FLOW = [

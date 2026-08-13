@@ -8,8 +8,15 @@ import { eyebrow } from "@/lib/styles";
 
 export default function NowPlayingStrip() {
   const entries = useQuery(api.submissions.board);
-  const locked = entries ?? [];
-  const slots = Array.from({ length: MAX_SELECTED }, (_, index) => locked[index] ?? null);
+  // useQuery returns undefined while loading; rendering slots then would flash
+  // eight UNCLAIMED/Open posters before the real board arrives.
+  const slots =
+    entries === undefined
+      ? null
+      : Array.from(
+          { length: MAX_SELECTED },
+          (_, index) => entries[index] ?? null,
+        );
 
   return (
     <section className="relative overflow-hidden py-16 sm:py-24">
@@ -28,39 +35,43 @@ export default function NowPlayingStrip() {
         </Link>
       </div>
 
-      <div className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-[var(--pad)] px-[var(--pad)]">
-        {slots.map((entry, index) => (
-          <article
-            key={entry?._id ?? `open-${index}`}
-            className="poster-card w-[min(42vw,220px)] shrink-0 snap-start"
-          >
-            <div
-              className={`poster-fill flex h-full flex-col justify-between p-4 ${
-                entry ? "bg-gradient-to-b from-admit/40 to-ink" : "bg-ink"
-              }`}
+      {slots === null ? (
+        <p className="mt-10 px-[var(--pad)] text-muted">Loading the lineup...</p>
+      ) : (
+        <div className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-[var(--pad)] px-[var(--pad)]">
+          {slots.map((entry, index) => (
+            <article
+              key={entry?._id ?? `open-${index}`}
+              className="poster-card w-[min(42vw,220px)] shrink-0 snap-start"
             >
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-mono text-[10px] tracking-[0.28em] text-muted">
-                  {String(index + 1).padStart(2, "0")}
-                </p>
-                <span
-                  className={`poster-pick ${entry ? "" : "poster-pick--open"}`}
-                >
-                  {entry ? "Locked" : "Open"}
-                </span>
+              <div
+                className={`poster-fill flex h-full flex-col justify-between p-4 ${
+                  entry ? "bg-gradient-to-b from-admit/40 to-ink" : "bg-ink"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-mono text-[10px] tracking-[0.28em] text-muted">
+                    {String(index + 1).padStart(2, "0")}
+                  </p>
+                  <span
+                    className={`poster-pick ${entry ? "" : "poster-pick--open"}`}
+                  >
+                    {entry ? "Locked" : "Open"}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-display line-clamp-4 text-2xl leading-[0.95] tracking-[-0.035em] text-paper">
+                    {entry?.demoTitle ?? "UNCLAIMED"}
+                  </p>
+                  <p className="mt-2 font-mono text-[10px] tracking-[0.18em] text-muted uppercase">
+                    {entry?.displayName ?? "Open slot"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-display line-clamp-4 text-2xl leading-[0.95] tracking-[-0.035em] text-paper">
-                  {entry?.demoTitle ?? "UNCLAIMED"}
-                </p>
-                <p className="mt-2 font-mono text-[10px] tracking-[0.18em] text-muted uppercase">
-                  {entry?.displayName ?? "Open slot"}
-                </p>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      )}
 
       <p className="mt-6 px-[var(--pad)] sm:hidden">
         <Link

@@ -18,6 +18,7 @@ export default async function Home() {
       <FilmLeader alreadyPlayed={alreadyPlayed} />
       <SiteHeader />
 
+      <main>
       <section className="relative min-h-[100svh]">
         <div
           className="absolute inset-0 bg-ink bg-cover bg-center"
@@ -126,8 +127,20 @@ export default async function Home() {
         </div>
       </section>
 
-      <footer className="px-[var(--pad)] pb-12 font-mono text-[11px] tracking-[0.18em] text-muted uppercase">
-        {EVENT.brand}. Hosted at {EVENT.where}.
+      </main>
+
+      <footer className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-[var(--pad)] pb-12 font-mono text-[11px] tracking-[0.18em] text-muted uppercase">
+        <p>
+          {EVENT.brand}. Hosted at {EVENT.where}.
+        </p>
+        <a
+          href={EVENT.repoUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="font-bold text-admit transition hover:text-paper"
+        >
+          Fork this template on GitHub →
+        </a>
       </footer>
     </>
   );
