@@ -76,15 +76,17 @@ of the app.
 ## Local setup
 
 ```bash
-npm install
+bun install
 ```
 
-1. Start Convex. This creates the deployment, writes `NEXT_PUBLIC_CONVEX_URL` and
-   `CONVEX_DEPLOYMENT` into `.env.local`, and keeps the schema in sync. Leave it
-   running.
+`npm install` still works if you do not have Bun.
+
+1. Start Convex. This creates a local or cloud deployment, writes
+   `NEXT_PUBLIC_CONVEX_URL` and `CONVEX_DEPLOYMENT` into `.env.local`, and keeps
+   the schema in sync. Leave it running.
 
    ```bash
-   npx convex dev
+   bunx convex dev
    ```
 
 2. Create a Clerk application, then activate the Convex integration at
@@ -95,17 +97,23 @@ npm install
 3. Give Convex the issuer domain and the host allowlist.
 
    ```bash
-   npx convex env set CLERK_JWT_ISSUER_DOMAIN https://verb-noun-00.clerk.accounts.dev
-   npx convex env set HOST_EMAILS "you@example.com"
+   bunx convex env set CLERK_JWT_ISSUER_DOMAIN https://verb-noun-00.clerk.accounts.dev
+   bunx convex env set HOST_EMAILS "you@example.com"
    ```
 
 4. Copy `.env.example` to `.env.local` and paste the Clerk keys plus
-   `HOST_EMAILS`. Keep the Convex lines that `npx convex dev` already wrote.
+   `HOST_EMAILS`. Keep the Convex lines that `bunx convex dev` already wrote.
 
 5. Run the app.
 
    ```bash
-   npm run dev
+   bun dev
+   ```
+
+   Or run both together:
+
+   ```bash
+   bunx convex dev --start 'bun dev'
    ```
 
 ## Deploy to Vercel
