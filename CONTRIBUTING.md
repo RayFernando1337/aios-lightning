@@ -7,13 +7,14 @@ only fit your event belong in your fork, next to your `lib/content.ts`.
 ## Before you open a PR
 
 ```bash
-npm install
-npm run lint
-npm run typecheck
-npm run build
+bun install
+bun run lint
+bun run typecheck
+bun run build
 ```
 
 All three checks must pass. There is no test suite; the build is the gate.
+`npm ci` still works from `package-lock.json` if you are not using Bun.
 
 ## Ground rules
 

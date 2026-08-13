@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Convex local backend (anonymous / agent-mode deployments)
+.convex/
+
 # vercel
 .vercel
 
