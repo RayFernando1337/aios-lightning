@@ -62,8 +62,6 @@ export default defineSchema({
   }),
 
   submissions: defineTable(submissionFields)
-    .index("by_user", ["userId"])
-    .index("by_status", ["status"])
     .index("by_event_user", ["eventId", "userId"])
     .index("by_event_status", ["eventId", "status"]),
 });
