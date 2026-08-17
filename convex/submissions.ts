@@ -1,7 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireHost, requireIdentity } from "./lib/auth";
-import { FIELD_LIMITS, MAX_SELECTED } from "./lib/limits";
+import { requireEvent, resolveEvent } from "./lib/eventLookup";
+import { FIELD_LIMITS } from "./lib/limits";
 import { requireText } from "./lib/text";
 import { statusValidator, submissionFields } from "./schema";
 
@@ -11,8 +12,6 @@ const submissionDoc = v.object({
   ...submissionFields,
 });
 
-// The public board contract. Only fields listed here leave the deployment,
-// so email, userId, and host-only state stay off the wire by construction.
 const boardEntry = v.object({
   _id: v.id("submissions"),
   displayName: v.string(),
@@ -21,29 +20,37 @@ const boardEntry = v.object({
   takeaway: v.string(),
 });
 
-/** The signed in applicant's own submission, or null before they apply. */
-export const mySubmission = query({
-  args: {},
+/** The signed-in applicant's submission for one event, or null. */
+export const mine = query({
+  args: { slug: v.optional(v.string()) },
   returns: v.union(submissionDoc, v.null()),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) {
       return null;
     }
 
+    const event = await resolveEvent(ctx, args.slug);
+    if (event === null) {
+      return null;
+    }
+
     return await ctx.db
       .query("submissions")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_event_user", (q) =>
+        q.eq("eventId", event._id).eq("userId", identity.subject),
+      )
       .unique();
   },
 });
 
 /**
- * Create the applicant's submission, or edit it in place if they already have one.
- * One row per user, always.
+ * Create the applicant's submission for this event, or edit it in place.
+ * One row per user per event.
  */
 export const submit = mutation({
   args: {
+    slug: v.optional(v.string()),
     displayName: v.string(),
     demoTitle: v.string(),
     whatYoullShowLive: v.string(),
@@ -55,9 +62,24 @@ export const submit = mutation({
   returns: v.id("submissions"),
   handler: async (ctx, args) => {
     const identity = await requireIdentity(ctx);
+    const event = await resolveEvent(ctx, args.slug);
+    if (event === null) {
+      throw new ConvexError("Event not found.");
+    }
 
     if (!args.noSlides || !args.noPitch || !args.readyIn60s) {
       throw new ConvexError("Check all three boxes to apply.");
+    }
+
+    const existing = await ctx.db
+      .query("submissions")
+      .withIndex("by_event_user", (q) =>
+        q.eq("eventId", event._id).eq("userId", identity.subject),
+      )
+      .unique();
+
+    if (existing === null && event.phase === "closed") {
+      throw new ConvexError("Applications are closed for this event.");
     }
 
     const content = {
@@ -83,11 +105,6 @@ export const submit = mutation({
       updatedAt: Date.now(),
     };
 
-    const existing = await ctx.db
-      .query("submissions")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .unique();
-
     if (existing !== null) {
       await ctx.db.patch(existing._id, {
         ...content,
@@ -98,6 +115,7 @@ export const submit = mutation({
 
     return await ctx.db.insert("submissions", {
       ...content,
+      eventId: event._id,
       userId: identity.subject,
       email: identity.email ?? "",
       status: "submitted",
@@ -106,13 +124,20 @@ export const submit = mutation({
   },
 });
 
-/** Every submission, newest first. Hosts only. */
+/** Every submission for one event, newest first. Hosts only. */
 export const listForHost = query({
-  args: {},
+  args: { eventId: v.id("events") },
   returns: v.array(submissionDoc),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     await requireHost(ctx);
-    return await ctx.db.query("submissions").order("desc").collect();
+    await requireEvent(ctx, args.eventId);
+
+    const rows = await ctx.db
+      .query("submissions")
+      .withIndex("by_event_status", (q) => q.eq("eventId", args.eventId))
+      .collect();
+
+    return rows.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -131,18 +156,21 @@ export const setStatus = mutation({
       throw new ConvexError("Submission not found.");
     }
 
+    const event = await requireEvent(ctx, submission.eventId);
     const isNewlySelected =
       args.status === "selected" && submission.status !== "selected";
 
     if (isNewlySelected) {
       const selected = await ctx.db
         .query("submissions")
-        .withIndex("by_status", (q) => q.eq("status", "selected"))
+        .withIndex("by_event_status", (q) =>
+          q.eq("eventId", event._id).eq("status", "selected"),
+        )
         .collect();
 
-      if (selected.length >= MAX_SELECTED) {
+      if (selected.length >= event.capacity) {
         throw new ConvexError(
-          `All ${MAX_SELECTED} slots are taken. Move someone out of selected first.`,
+          `All ${event.capacity} slots are taken. Move someone out of selected first.`,
         );
       }
     }
@@ -150,8 +178,6 @@ export const setStatus = mutation({
     await ctx.db.patch(args.submissionId, {
       status: args.status,
       updatedAt: Date.now(),
-      // Board order follows selection time, not edit time, so applicants can
-      // fix typos without shuffling the lineup.
       selectedAt: isNewlySelected
         ? Date.now()
         : args.status === "selected"
@@ -163,18 +189,23 @@ export const setStatus = mutation({
   },
 });
 
-/** Public running order for the room: who is up and what they will demo. */
+/** Public running order for one event. */
 export const board = query({
-  args: {},
+  args: { slug: v.optional(v.string()) },
   returns: v.array(boardEntry),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
+    const event = await resolveEvent(ctx, args.slug);
+    if (event === null) {
+      return [];
+    }
+
     const selected = await ctx.db
       .query("submissions")
-      .withIndex("by_status", (q) => q.eq("status", "selected"))
+      .withIndex("by_event_status", (q) =>
+        q.eq("eventId", event._id).eq("status", "selected"),
+      )
       .collect();
 
-    // Rows selected before `selectedAt` existed fall back to `updatedAt`,
-    // preserving the ordering they had under the old sort.
     return selected
       .sort(
         (a, b) => (a.selectedAt ?? a.updatedAt) - (b.selectedAt ?? b.updatedAt),

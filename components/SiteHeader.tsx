@@ -5,7 +5,13 @@ import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import Link from "next/link";
 import TicketMark from "@/components/TicketMark";
 
-export default function SiteHeader() {
+export default function SiteHeader({
+  boardHref = "/board",
+  applyHref = "/apply",
+}: {
+  boardHref?: string;
+  applyHref?: string;
+}) {
   return (
     <header className="site-chrome fixed inset-x-0 top-0 z-40 flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
       <Link
@@ -20,7 +26,7 @@ export default function SiteHeader() {
 
       <nav className="glass-pill px-4 py-2 text-sm">
         <Link
-          href="/board"
+          href={boardHref}
           className="font-mono text-[10px] font-bold tracking-[0.22em] text-paper/80 uppercase transition hover:text-paper"
         >
           Board
@@ -34,7 +40,7 @@ export default function SiteHeader() {
 
         <Authenticated>
           <Link
-            href="/apply"
+            href={applyHref}
             className="font-mono text-[10px] font-bold tracking-[0.22em] text-paper/80 uppercase transition hover:text-paper"
           >
             My slot
@@ -43,7 +49,7 @@ export default function SiteHeader() {
         </Authenticated>
 
         <Unauthenticated>
-          <SignInButton mode="modal" forceRedirectUrl="/apply">
+          <SignInButton mode="modal" forceRedirectUrl={applyHref}>
             <button className="font-mono text-[10px] font-bold tracking-[0.22em] text-paper uppercase">
               Sign in
             </button>

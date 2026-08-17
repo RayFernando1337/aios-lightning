@@ -5,7 +5,6 @@ import { useState } from "react";
 import StatusChip from "@/components/StatusChip";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
-import { MAX_SELECTED } from "@/convex/lib/limits";
 import { readableError } from "@/lib/errors";
 import { STATUS_LABELS, STATUS_ORDER, SubmissionStatus } from "@/lib/status";
 import { card } from "@/lib/styles";
@@ -67,21 +66,33 @@ export function toTriageCard(submission: Doc<"submissions">): TriageCard {
 
 type Filter = SubmissionStatus | "all";
 
-export default function HostDashboard() {
+export default function HostDashboard({
+  eventId,
+  capacity,
+}: {
+  eventId: Id<"events">;
+  capacity: number;
+}) {
   return (
     <>
       <AuthLoading>
         <p className="text-muted">Checking your session...</p>
       </AuthLoading>
       <Authenticated>
-        <Triage />
+        <Triage eventId={eventId} capacity={capacity} />
       </Authenticated>
     </>
   );
 }
 
-function Triage() {
-  const submissions = useQuery(api.submissions.listForHost);
+function Triage({
+  eventId,
+  capacity,
+}: {
+  eventId: Id<"events">;
+  capacity: number;
+}) {
+  const submissions = useQuery(api.submissions.listForHost, { eventId });
   const setStatus = useMutation(api.submissions.setStatus);
 
   const [filter, setFilter] = useState<Filter>("all");
@@ -132,12 +143,12 @@ function Triage() {
           <p className="text-sm text-muted">
             <span
               className={
-                selectedCount >= MAX_SELECTED
+                selectedCount >= capacity
                   ? "font-bold text-admit"
                   : "font-bold text-paper"
               }
             >
-              {selectedCount} of {MAX_SELECTED}
+              {selectedCount} of {capacity}
             </span>{" "}
             slots picked
           </p>

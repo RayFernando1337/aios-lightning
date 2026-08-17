@@ -13,8 +13,7 @@ import { FormEvent, useState } from "react";
 import StatusChip from "@/components/StatusChip";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
-import { FIELD_LIMITS, MAX_SELECTED } from "@/convex/lib/limits";
-import { EVENT } from "@/lib/content";
+import { FIELD_LIMITS } from "@/convex/lib/limits";
 import { readableError } from "@/lib/errors";
 import { APPLICANT_NEXT_STEP } from "@/lib/status";
 import {
@@ -27,7 +26,17 @@ import {
   input,
 } from "@/lib/styles";
 
-export default function ApplyForm() {
+type ApplyFormProps = {
+  slug?: string;
+  applyHref: string;
+  boardHref: string;
+  capacity: number;
+  dryRun: string;
+  phase: "open" | "closed";
+  eventName: string;
+};
+
+export default function ApplyForm(props: ApplyFormProps) {
   return (
     <>
       <AuthLoading>
@@ -38,10 +47,10 @@ export default function ApplyForm() {
         <div className={card}>
           <p className="font-semibold">Sign in to apply.</p>
           <p className="mt-1 text-sm text-muted">
-            One account, one slot. It keeps the list honest.
+            One account, one slot on this night. It keeps the list honest.
           </p>
           <div className="mt-4">
-            <SignInButton mode="modal" forceRedirectUrl="/apply">
+            <SignInButton mode="modal" forceRedirectUrl={props.applyHref}>
               <button className={buttonPrimary}>Sign in</button>
             </SignInButton>
           </div>
@@ -49,14 +58,15 @@ export default function ApplyForm() {
       </Unauthenticated>
 
       <Authenticated>
-        <ApplyFlow />
+        <ApplyFlow {...props} />
       </Authenticated>
     </>
   );
 }
 
-function ApplyFlow() {
-  const mine = useQuery(api.submissions.mySubmission);
+function ApplyFlow(props: ApplyFormProps) {
+  const queryArgs = props.slug !== undefined ? { slug: props.slug } : {};
+  const mine = useQuery(api.submissions.mine, queryArgs);
   const { user } = useUser();
   const [editing, setEditing] = useState(false);
 
@@ -64,9 +74,31 @@ function ApplyFlow() {
     return <p className="text-muted">Loading your application...</p>;
   }
 
+  if (mine === null && props.phase === "closed") {
+    return (
+      <div className={card}>
+        <p className="font-semibold">Applications are closed.</p>
+        <p className="mt-1 text-sm text-muted">
+          {props.eventName} is no longer taking new demos.
+        </p>
+        <div className="mt-4">
+          <Link href={props.boardHref} className={buttonSecondary}>
+            See the board
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (mine !== null && !editing) {
     return (
-      <SubmittedCard submission={mine} onEdit={() => setEditing(true)} />
+      <SubmittedCard
+        submission={mine}
+        boardHref={props.boardHref}
+        capacity={props.capacity}
+        dryRun={props.dryRun}
+        onEdit={() => setEditing(true)}
+      />
     );
   }
 
@@ -74,6 +106,7 @@ function ApplyFlow() {
     <Fields
       key={mine?._id ?? "new"}
       existing={mine}
+      slug={props.slug}
       fallbackName={user?.fullName ?? user?.firstName ?? ""}
       onSaved={() => setEditing(false)}
     />
@@ -82,9 +115,15 @@ function ApplyFlow() {
 
 function SubmittedCard({
   submission,
+  boardHref,
+  capacity,
+  dryRun,
   onEdit,
 }: {
   submission: Doc<"submissions">;
+  boardHref: string;
+  capacity: number;
+  dryRun: string;
   onEdit: () => void;
 }) {
   const isOut = submission.status === "rejected";
@@ -136,13 +175,13 @@ function SubmittedCard({
           <p className={eyebrow}>Two things left</p>
           <ol className="mt-3 space-y-2 text-sm text-cream/90">
             <li>
-              1. Hosts pick up to {MAX_SELECTED} demos. Watch the{" "}
-              <Link href="/board" className="underline hover:text-paper">
+              1. Hosts pick up to {capacity} demos. Watch the{" "}
+              <Link href={boardHref} className="underline hover:text-paper">
                 board
               </Link>
               .
             </li>
-            <li>2. {EVENT.dryRun}</li>
+            <li>2. {dryRun}</li>
           </ol>
         </div>
       )}
@@ -151,7 +190,7 @@ function SubmittedCard({
         <button type="button" onClick={onEdit} className={buttonSecondary}>
           Edit my application
         </button>
-        <Link href="/board" className={buttonSecondary}>
+        <Link href={boardHref} className={buttonSecondary}>
           See the board
         </Link>
       </div>
@@ -161,10 +200,12 @@ function SubmittedCard({
 
 function Fields({
   existing,
+  slug,
   fallbackName,
   onSaved,
 }: {
   existing: Doc<"submissions"> | null;
+  slug?: string;
   fallbackName: string;
   onSaved: () => void;
 }) {
@@ -192,6 +233,7 @@ function Fields({
 
     try {
       await submit({
+        ...(slug !== undefined ? { slug } : {}),
         displayName,
         demoTitle,
         whatYoullShowLive,

@@ -5,7 +5,7 @@ import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import Link from "next/link";
 import { buttonPrimary } from "@/lib/styles";
 
-export default function ApplyCta() {
+export default function ApplyCta({ href = "/apply" }: { href?: string }) {
   return (
     <>
       <AuthLoading>
@@ -15,13 +15,13 @@ export default function ApplyCta() {
       </AuthLoading>
 
       <Authenticated>
-        <Link href="/apply" className={buttonPrimary}>
+        <Link href={href} className={buttonPrimary}>
           Apply for a slot
         </Link>
       </Authenticated>
 
       <Unauthenticated>
-        <SignInButton mode="modal" forceRedirectUrl="/apply">
+        <SignInButton mode="modal" forceRedirectUrl={href}>
           <button className={buttonPrimary}>Sign in and apply</button>
         </SignInButton>
       </Unauthenticated>

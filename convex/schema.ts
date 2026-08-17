@@ -8,7 +8,31 @@ export const statusValidator = v.union(
   v.literal("rejected"),
 );
 
+export const phaseValidator = v.union(v.literal("open"), v.literal("closed"));
+
+export const ruleValidator = v.object({
+  title: v.string(),
+  body: v.string(),
+});
+
+export const eventFields = {
+  name: v.string(),
+  slug: v.string(),
+  when: v.string(),
+  where: v.string(),
+  room: v.string(),
+  capacity: v.number(),
+  dryRun: v.string(),
+  heroImage: v.string(),
+  phase: phaseValidator,
+  rules: v.array(ruleValidator),
+  flow: v.array(v.string()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+};
+
 export const submissionFields = {
+  eventId: v.id("events"),
   // Clerk user id (the `sub` claim on the Convex JWT).
   userId: v.string(),
   email: v.string(),
@@ -28,7 +52,17 @@ export const submissionFields = {
 };
 
 export default defineSchema({
+  events: defineTable(eventFields)
+    .index("by_slug", ["slug"])
+    .index("by_phase", ["phase"]),
+
+  // One row at most. Points `/` at an event. A pointer cannot put two events
+  // in the featured state, which a boolean per row could.
+  settings: defineTable({
+    featuredEventId: v.id("events"),
+  }),
+
   submissions: defineTable(submissionFields)
-    .index("by_user", ["userId"])
-    .index("by_status", ["status"]),
+    .index("by_event_user", ["eventId", "userId"])
+    .index("by_event_status", ["eventId", "status"]),
 });
