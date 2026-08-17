@@ -17,8 +17,8 @@ export function slugify(name: string): string {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, EVENT_FIELD_LIMITS.slug);
+    .slice(0, EVENT_FIELD_LIMITS.slug)
+    .replace(/^-+|-+$/g, "");
 
   return slug.length > 0 ? slug : "event";
 }

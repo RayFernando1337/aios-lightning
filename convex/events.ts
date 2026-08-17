@@ -4,6 +4,7 @@ import { requireHost } from "./lib/auth";
 import {
   getEventBySlug,
   getFeaturedEvent,
+  getStoredFeaturedEventId,
   requireEvent,
   resolveEvent,
   setFeaturedEvent,
@@ -210,8 +211,8 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    const featuredEvent = await getFeaturedEvent(ctx);
-    if (featuredEvent === null) {
+    const featuredEventId = await getStoredFeaturedEventId(ctx);
+    if (featuredEventId === null) {
       await setFeaturedEvent(ctx, eventId);
     }
 
@@ -320,15 +321,14 @@ export const ensureSeed = mutation({
       return null;
     }
 
-    const featuredEvent = await getFeaturedEvent(ctx);
-    if (featuredEvent === null) {
+    const featuredEventId = await getStoredFeaturedEventId(ctx);
+    if (featuredEventId === null) {
       await setFeaturedEvent(ctx, event._id);
     }
 
     const submissions = await ctx.db.query("submissions").collect();
     for (const submission of submissions) {
-      const eventId = (submission as { eventId?: typeof event._id }).eventId;
-      if (eventId === undefined) {
+      if (submission.eventId === undefined) {
         await ctx.db.patch(submission._id, { eventId: event._id });
       }
     }

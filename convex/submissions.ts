@@ -156,6 +156,10 @@ export const setStatus = mutation({
       throw new ConvexError("Submission not found.");
     }
 
+    if (submission.eventId === undefined) {
+      throw new ConvexError("Submission is missing an event.");
+    }
+
     const event = await requireEvent(ctx, submission.eventId);
     const isNewlySelected =
       args.status === "selected" && submission.status !== "selected";

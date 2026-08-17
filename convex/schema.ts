@@ -32,7 +32,7 @@ export const eventFields = {
 };
 
 export const submissionFields = {
-  eventId: v.id("events"),
+  eventId: v.optional(v.id("events")),
   // Clerk user id (the `sub` claim on the Convex JWT).
   userId: v.string(),
   email: v.string(),

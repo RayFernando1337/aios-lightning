@@ -13,13 +13,10 @@ export default function ApplyEventPage({ slug }: { slug?: string }) {
     api.events.bySlug,
     slug !== undefined ? { slug } : {},
   );
-  const house = slug === undefined;
-  const applyHref = house || event === null || event === undefined
-    ? "/apply"
-    : eventApplyPath(event.slug);
-  const boardHref = house || event === null || event === undefined
-    ? "/board"
-    : eventBoardPath(event.slug);
+  const applyHref =
+    slug !== undefined ? eventApplyPath(slug) : "/apply";
+  const boardHref =
+    slug !== undefined ? eventBoardPath(slug) : "/board";
 
   if (event === undefined) {
     return (

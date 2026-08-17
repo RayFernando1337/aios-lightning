@@ -14,12 +14,19 @@ export async function getEventBySlug(
     .unique();
 }
 
+export async function getStoredFeaturedEventId(
+  ctx: Ctx,
+): Promise<Id<"events"> | null> {
+  const settings = await ctx.db.query("settings").first();
+  return settings === null ? null : settings.featuredEventId;
+}
+
 export async function getFeaturedEvent(
   ctx: Ctx,
 ): Promise<Doc<"events"> | null> {
-  const settings = await ctx.db.query("settings").first();
-  if (settings !== null) {
-    const featured = await ctx.db.get(settings.featuredEventId);
+  const featuredEventId = await getStoredFeaturedEventId(ctx);
+  if (featuredEventId !== null) {
+    const featured = await ctx.db.get(featuredEventId);
     if (featured !== null) {
       return featured;
     }
