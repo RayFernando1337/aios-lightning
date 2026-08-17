@@ -141,6 +141,11 @@ as well, not just the dev one.
 Without a deploy key, keep the default `npm run build` and set
 `NEXT_PUBLIC_CONVEX_URL` in Vercel to your Convex deployment URL.
 
+A Vercel preview only ships the Next.js app. New Convex functions such as
+`events:bySlug` stay invisible until that same commit is pushed to the Convex
+deployment the preview calls. Use the deploy-key build command above, or run
+`npx convex deploy` against that deployment from a machine that is logged in.
+
 For a real event, use a Clerk Production instance, not Development keys. In the
 Clerk dashboard, create the Production instance (it needs a domain you own),
 put its `pk_live_` and `sk_live_` keys in Vercel, and set

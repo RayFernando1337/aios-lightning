@@ -26,7 +26,7 @@ export async function getFeaturedEvent(
 ): Promise<Doc<"events"> | null> {
   const featuredEventId = await getStoredFeaturedEventId(ctx);
   if (featuredEventId !== null) {
-    const featured = await ctx.db.get(featuredEventId);
+    const featured = await ctx.db.get("events", featuredEventId);
     if (featured !== null) {
       return featured;
     }
@@ -58,7 +58,7 @@ export async function requireEvent(
   ctx: Ctx,
   eventId: Id<"events">,
 ): Promise<Doc<"events">> {
-  const event = await ctx.db.get(eventId);
+  const event = await ctx.db.get("events", eventId);
   if (event === null) {
     throw new ConvexError("Event not found.");
   }
@@ -71,7 +71,7 @@ export async function setFeaturedEvent(
 ): Promise<void> {
   const existing = await ctx.db.query("settings").first();
   if (existing !== null) {
-    await ctx.db.patch(existing._id, { featuredEventId: eventId });
+    await ctx.db.patch("settings", existing._id, { featuredEventId: eventId });
     return;
   }
   await ctx.db.insert("settings", { featuredEventId: eventId });

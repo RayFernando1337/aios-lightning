@@ -20,24 +20,19 @@ else
   bun install
 fi
 
-# auth.config.ts reads CLERK_JWT_ISSUER_DOMAIN from the process environment
-# during the function push. Cloud agents cannot log in; --once then provisions
-# a local backend. Skip the push when the issuer is unset so lint/typecheck/build
-# still work with zero secrets.
-if [[ -z "${CLERK_JWT_ISSUER_DOMAIN:-}" ]]; then
-  echo "CLERK_JWT_ISSUER_DOMAIN is unset; skipping bunx convex dev --once." >&2
-  echo "Set it to your Clerk Frontend API URL (https://verb-noun-00.clerk.accounts.dev) to sync functions." >&2
-  exit 0
-fi
-
-# env set needs a configured deployment. init provisions a local backend
-# without pushing, so HOST_EMAILS is on the deployment before --once.
+# Cloud agents cannot log in; --once provisions a local backend.
+# Public queries (landing, board) still push with Clerk unset.
 # https://docs.convex.dev/cli/agent-mode
+export CONVEX_AGENT_MODE="${CONVEX_AGENT_MODE:-anonymous}"
 bunx convex init
 
 if [[ -n "${HOST_EMAILS:-}" ]]; then
   bunx convex env set HOST_EMAILS "$HOST_EMAILS"
 fi
 
-bunx convex env set CLERK_JWT_ISSUER_DOMAIN "$CLERK_JWT_ISSUER_DOMAIN"
+# auth.config.ts always reads this. A placeholder lets --once push public
+# functions when Clerk is unset. Gated routes still need the real issuer.
+bunx convex env set CLERK_JWT_ISSUER_DOMAIN \
+  "${CLERK_JWT_ISSUER_DOMAIN:-https://unused.clerk.accounts.dev}"
+
 bunx convex dev --once

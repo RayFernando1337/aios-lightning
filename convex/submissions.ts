@@ -106,7 +106,7 @@ export const submit = mutation({
     };
 
     if (existing !== null) {
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("submissions", existing._id, {
         ...content,
         email: identity.email ?? existing.email,
       });
@@ -151,7 +151,7 @@ export const setStatus = mutation({
   handler: async (ctx, args) => {
     await requireHost(ctx);
 
-    const submission = await ctx.db.get(args.submissionId);
+    const submission = await ctx.db.get("submissions", args.submissionId);
     if (submission === null) {
       throw new ConvexError("Submission not found.");
     }
@@ -179,7 +179,7 @@ export const setStatus = mutation({
       }
     }
 
-    await ctx.db.patch(args.submissionId, {
+    await ctx.db.patch("submissions", args.submissionId, {
       status: args.status,
       updatedAt: Date.now(),
       selectedAt: isNewlySelected

@@ -139,8 +139,7 @@ export const listForHost = query({
   handler: async (ctx) => {
     await requireHost(ctx);
     const events = await ctx.db.query("events").order("desc").collect();
-    const featuredEvent = await getFeaturedEvent(ctx);
-    const featuredId = featuredEvent?._id ?? null;
+    const featuredId = await getStoredFeaturedEventId(ctx);
 
     const rows = [];
     for (const event of events) {
@@ -211,8 +210,7 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    const featuredEventId = await getStoredFeaturedEventId(ctx);
-    if (featuredEventId === null) {
+    if ((await getStoredFeaturedEventId(ctx)) === null) {
       await setFeaturedEvent(ctx, eventId);
     }
 
@@ -281,7 +279,7 @@ export const update = mutation({
       patch.capacity = capacity;
     }
 
-    await ctx.db.patch(event._id, patch);
+    await ctx.db.patch("events", event._id, patch);
     return null;
   },
 });
@@ -313,7 +311,7 @@ export const ensureSeed = mutation({
           createdAt: now,
           updatedAt: now,
         });
-        event = await ctx.db.get(eventId);
+        event = await ctx.db.get("events", eventId);
       }
     }
 
@@ -321,15 +319,16 @@ export const ensureSeed = mutation({
       return null;
     }
 
-    const featuredEventId = await getStoredFeaturedEventId(ctx);
-    if (featuredEventId === null) {
+    if ((await getStoredFeaturedEventId(ctx)) === null) {
       await setFeaturedEvent(ctx, event._id);
     }
 
     const submissions = await ctx.db.query("submissions").collect();
     for (const submission of submissions) {
       if (submission.eventId === undefined) {
-        await ctx.db.patch(submission._id, { eventId: event._id });
+        await ctx.db.patch("submissions", submission._id, {
+          eventId: event._id,
+        });
       }
     }
 

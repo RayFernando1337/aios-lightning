@@ -32,6 +32,7 @@ export const eventFields = {
 };
 
 export const submissionFields = {
+  // Optional until ensureSeed backfills rows created before multi-event.
   eventId: v.optional(v.id("events")),
   // Clerk user id (the `sub` claim on the Convex JWT).
   userId: v.string(),
@@ -61,6 +62,8 @@ export default defineSchema({
   }),
 
   submissions: defineTable(submissionFields)
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
     .index("by_event_user", ["eventId", "userId"])
     .index("by_event_status", ["eventId", "status"]),
 });
