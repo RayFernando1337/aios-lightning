@@ -56,8 +56,6 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_phase", ["phase"]),
 
-  // One row at most. Points `/` at an event. A pointer cannot put two events
-  // in the featured state, which a boolean per row could.
   settings: defineTable({
     featuredEventId: v.id("events"),
   }),

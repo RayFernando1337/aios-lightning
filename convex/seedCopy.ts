@@ -1,9 +1,5 @@
 import { DEFAULT_CAPACITY } from "./lib/limits";
 
-/**
- * The AiOS SF night, lifted from the old `lib/content.ts` so the first
- * deploy still has tonight's copy. Hosts create later nights from the desk.
- */
 export const AIOS_SF_SEED = {
   name: "AiOS SF · Lightning",
   slug: "aios-sf-lightning",

@@ -114,7 +114,6 @@ async function uniqueSlug(ctx: MutationCtx, base: string): Promise<string> {
   );
 }
 
-/** Featured event for `/`, `/apply`, and `/board`. Null means nothing is scheduled. */
 export const featured = query({
   args: {},
   returns: v.union(publicEventValidator, v.null()),
@@ -124,7 +123,6 @@ export const featured = query({
   },
 });
 
-/** Landing, apply, and board pages resolve their slug here. */
 export const bySlug = query({
   args: { slug: v.optional(v.string()) },
   returns: v.union(publicEventValidator, v.null()),
@@ -134,7 +132,6 @@ export const bySlug = query({
   },
 });
 
-/** Host index: every event, per-status counts, featured flag. */
 export const listForHost = query({
   args: {},
   returns: v.array(hostEventValidator),
@@ -299,10 +296,6 @@ export const setFeatured = mutation({
   },
 });
 
-/**
- * Creates the AiOS SF night if the table is empty, points `/` at it, and
- * attaches any leftover submissions that predate events.
- */
 export const ensureSeed = mutation({
   args: {},
   returns: v.union(v.id("events"), v.null()),
