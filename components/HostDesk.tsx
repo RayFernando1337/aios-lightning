@@ -3,18 +3,20 @@
 import { Authenticated, AuthLoading, useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import RouteCodes from "@/components/RouteCodes";
+import WhenPicker from "@/components/WhenPicker";
 import { api } from "@/convex/_generated/api";
 import { DEFAULT_CAPACITY, EVENT_FIELD_LIMITS } from "@/convex/lib/limits";
 import { readableError } from "@/lib/errors";
-import { eventPath, hostEventPath } from "@/lib/paths";
+import { hostEventPath } from "@/lib/paths";
 import {
   buttonPrimary,
-  buttonSecondary,
   card,
   fieldHint,
   fieldLabel,
   input,
 } from "@/lib/styles";
+import { defaultWhen } from "@/lib/when";
 
 export default function HostDesk() {
   return (
@@ -81,7 +83,13 @@ function Desk() {
                 >
                   Triage
                 </Link>
-                <CopyLink path={eventPath(row.event.slug)} />
+              </div>
+              <div className="mt-4">
+                <RouteCodes
+                  slug={row.event.slug}
+                  featured={row.featured}
+                  bare
+                />
               </div>
             </li>
           ))}
@@ -96,7 +104,7 @@ function Desk() {
 function CreateEventForm() {
   const create = useMutation(api.events.create);
   const [name, setName] = useState("");
-  const [when, setWhen] = useState("");
+  const [when, setWhen] = useState(() => defaultWhen());
   const [where, setWhere] = useState("");
   const [room, setRoom] = useState("");
   const [capacity, setCapacity] = useState(String(DEFAULT_CAPACITY));
@@ -116,7 +124,7 @@ function CreateEventForm() {
         capacity: Number(capacity),
       });
       setName("");
-      setWhen("");
+      setWhen(defaultWhen());
       setWhere("");
       setRoom("");
       setCapacity(String(DEFAULT_CAPACITY));
@@ -148,18 +156,11 @@ function CreateEventForm() {
         />
       </div>
       <div>
-        <label htmlFor="event-when" className={fieldLabel}>
-          When
-        </label>
-        <input
-          id="event-when"
-          className={`${input} mt-2`}
-          value={when}
-          onChange={(event) => setWhen(event.target.value)}
-          maxLength={EVENT_FIELD_LIMITS.when}
-          placeholder="Thu Aug 28 · doors 6pm"
-          required
-        />
+        <p className={fieldLabel}>When</p>
+        <p className={fieldHint}>San Francisco date and doors. No typing.</p>
+        <div className="mt-2">
+          <WhenPicker value={when} onChange={setWhen} />
+        </div>
       </div>
       <div>
         <label htmlFor="event-where" className={fieldLabel}>
@@ -213,44 +214,5 @@ function CreateEventForm() {
         {saving ? "Posting..." : "Post night"}
       </button>
     </form>
-  );
-}
-
-export function CopyLink({ path }: { path: string }) {
-  const [copied, setCopied] = useState(false);
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
-
-  async function copy() {
-    const url = `${window.location.origin}${path}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setFailedUrl(null);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-      setFailedUrl(url);
-    }
-  }
-
-  return (
-    <div className="flex min-w-0 flex-1 flex-col gap-2">
-      <button
-        type="button"
-        onClick={() => void copy()}
-        className={buttonSecondary}
-      >
-        {copied ? "Copied" : failedUrl !== null ? "Copy failed" : "Copy attendee link"}
-      </button>
-      {failedUrl !== null && (
-        <input
-          className={input}
-          value={failedUrl}
-          readOnly
-          aria-label="Attendee link"
-          onFocus={(event) => event.currentTarget.select()}
-        />
-      )}
-    </div>
   );
 }

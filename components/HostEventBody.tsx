@@ -42,6 +42,7 @@ function Loaded({ slug }: { slug: string }) {
         slug={event.slug}
         phase={event.phase}
         featured={featured?._id === event._id}
+        when={event.when}
       />
       <HostDashboard eventId={event._id} capacity={event.capacity} />
     </div>

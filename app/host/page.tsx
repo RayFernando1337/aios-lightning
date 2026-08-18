@@ -15,7 +15,7 @@ export default async function HostPage() {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader host applyHref="/apply" boardHref="/board" />
       <main className={pageMain}>
         <p className={eyebrow}>Host</p>
         <h1 className="font-display mt-3 text-5xl tracking-[-0.035em]">

@@ -1,6 +1,6 @@
+import HostChrome from "@/components/HostChrome";
 import HostErrorBoundary from "@/components/HostErrorBoundary";
 import HostEventBody from "@/components/HostEventBody";
-import SiteHeader from "@/components/SiteHeader";
 import { hostGate } from "@/lib/hostAccess";
 import { card, eyebrow, pageMain } from "@/lib/styles";
 
@@ -19,8 +19,7 @@ export default async function HostEventPage({
   const gate = await hostGate();
 
   return (
-    <>
-      <SiteHeader />
+    <HostChrome slug={slug}>
       <main className={pageMain}>
         <p className={eyebrow}>Host</p>
         <h1 className="font-display mt-3 text-5xl tracking-[-0.035em]">
@@ -39,6 +38,6 @@ export default async function HostEventPage({
           )}
         </div>
       </main>
-    </>
+    </HostChrome>
   );
 }
