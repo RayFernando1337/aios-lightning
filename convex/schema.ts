@@ -59,6 +59,7 @@ export default defineSchema({
 
   settings: defineTable({
     featuredEventId: v.id("events"),
+    submissionEventBackfillDone: v.optional(v.boolean()),
   }),
 
   submissions: defineTable(submissionFields)

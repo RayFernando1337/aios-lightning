@@ -218,17 +218,39 @@ function CreateEventForm() {
 
 export function CopyLink({ path }: { path: string }) {
   const [copied, setCopied] = useState(false);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
   async function copy() {
     const url = `${window.location.origin}${path}`;
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setFailedUrl(null);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+      setFailedUrl(url);
+    }
   }
 
   return (
-    <button type="button" onClick={() => void copy()} className={buttonSecondary}>
-      {copied ? "Copied" : "Copy attendee link"}
-    </button>
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <button
+        type="button"
+        onClick={() => void copy()}
+        className={buttonSecondary}
+      >
+        {copied ? "Copied" : failedUrl !== null ? "Copy failed" : "Copy attendee link"}
+      </button>
+      {failedUrl !== null && (
+        <input
+          className={input}
+          value={failedUrl}
+          readOnly
+          aria-label="Attendee link"
+          onFocus={(event) => event.currentTarget.select()}
+        />
+      )}
+    </div>
   );
 }

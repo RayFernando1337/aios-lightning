@@ -28,11 +28,14 @@ export function isReservedSlug(slug: string): boolean {
   return RESERVED.has(slug);
 }
 
-export function isValidSlug(slug: string): boolean {
+export function hasSlugShape(slug: string): boolean {
   return (
     slug.length > 0 &&
     slug.length <= EVENT_FIELD_LIMITS.slug &&
-    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) &&
-    !isReservedSlug(slug)
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
   );
+}
+
+export function isValidSlug(slug: string): boolean {
+  return hasSlugShape(slug) && !isReservedSlug(slug);
 }

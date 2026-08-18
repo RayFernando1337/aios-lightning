@@ -1,5 +1,12 @@
 import { ConvexError, Infer, v } from "convex/values";
-import { MutationCtx, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
+import {
+  MutationCtx,
+  internalMutation,
+  mutation,
+  query,
+} from "./_generated/server";
 import { requireHost } from "./lib/auth";
 import {
   getEventBySlug,
@@ -15,10 +22,11 @@ import {
   DEFAULT_CAPACITY,
   EVENT_FIELD_LIMITS,
 } from "./lib/limits";
-import { isValidSlug, slugify } from "./lib/slug";
+import { backfillOrphanPage } from "./lib/orphanBackfill";
+import { hasSlugShape, isReservedSlug, slugify } from "./lib/slug";
 import { requireText } from "./lib/text";
 import { phaseValidator, ruleValidator } from "./schema";
-import { AIOS_SF_SEED, SITE } from "./seedCopy";
+import { AIOS_SF_SEED, SITE, copyForCapacity } from "./seedCopy";
 
 export const publicEventValidator = v.object({
   _id: v.id("events"),
@@ -88,20 +96,25 @@ function requireCapacity(value: number): number {
 }
 
 async function uniqueSlug(ctx: MutationCtx, base: string): Promise<string> {
-  if (!isValidSlug(base)) {
+  if (!hasSlugShape(base)) {
     throw new ConvexError(
       "Choose a simpler name. The link can only use letters, numbers, and dashes.",
     );
   }
 
-  const existing = await getEventBySlug(ctx, base);
-  if (existing === null) {
-    return base;
+  if (!isReservedSlug(base)) {
+    const existing = await getEventBySlug(ctx, base);
+    if (existing === null) {
+      return base;
+    }
   }
 
+  const prefix =
+    base.slice(0, EVENT_FIELD_LIMITS.slug - 3).replace(/-+$/, "") || "event";
+
   for (let suffix = 2; suffix < 50; suffix += 1) {
-    const candidate = `${base.slice(0, EVENT_FIELD_LIMITS.slug - 3)}-${suffix}`;
-    if (!isValidSlug(candidate)) {
+    const candidate = `${prefix}-${suffix}`;
+    if (!hasSlugShape(candidate) || isReservedSlug(candidate)) {
       continue;
     }
     const taken = await getEventBySlug(ctx, candidate);
@@ -193,6 +206,7 @@ export const create = mutation({
     );
     const slug = await uniqueSlug(ctx, slugify(name));
     const now = Date.now();
+    const copy = copyForCapacity(capacity);
 
     const eventId = await ctx.db.insert("events", {
       name,
@@ -204,8 +218,8 @@ export const create = mutation({
       dryRun,
       heroImage: SITE.heroImage,
       phase: "open",
-      rules: SITE.defaultRules.map((rule) => ({ ...rule })),
-      flow: [...SITE.defaultFlow],
+      rules: copy.rules,
+      flow: copy.flow,
       createdAt: now,
       updatedAt: now,
     });
@@ -295,26 +309,48 @@ export const setFeatured = mutation({
   },
 });
 
+async function resolveSeedEvent(ctx: MutationCtx) {
+  const bySlug = await getEventBySlug(ctx, AIOS_SF_SEED.slug);
+  if (bySlug !== null) {
+    return bySlug;
+  }
+
+  const fallback = await getFeaturedEvent(ctx);
+  if (fallback !== null) {
+    return fallback;
+  }
+
+  const now = Date.now();
+  const eventId = await ctx.db.insert("events", {
+    ...AIOS_SF_SEED,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return await ctx.db.get("events", eventId);
+}
+
+async function continueOrphanBackfill(
+  ctx: MutationCtx,
+  eventId: Id<"events">,
+  cursor: string | null,
+): Promise<void> {
+  const page = await backfillOrphanPage(ctx, eventId, cursor);
+  if (page.done) {
+    return;
+  }
+  await ctx.scheduler.runAfter(0, internal.events.backfillOrphanSubmissions, {
+    eventId,
+    cursor: page.continueCursor,
+  });
+}
+
 export const ensureSeed = mutation({
   args: {},
   returns: v.union(v.id("events"), v.null()),
   handler: async (ctx) => {
     await requireHost(ctx);
 
-    let event = await getEventBySlug(ctx, AIOS_SF_SEED.slug);
-    if (event === null) {
-      const anyEvent = await ctx.db.query("events").first();
-      if (anyEvent === null) {
-        const now = Date.now();
-        const eventId = await ctx.db.insert("events", {
-          ...AIOS_SF_SEED,
-          createdAt: now,
-          updatedAt: now,
-        });
-        event = await ctx.db.get("events", eventId);
-      }
-    }
-
+    const event = await resolveSeedEvent(ctx);
     if (event === null) {
       return null;
     }
@@ -323,15 +359,19 @@ export const ensureSeed = mutation({
       await setFeaturedEvent(ctx, event._id);
     }
 
-    const submissions = await ctx.db.query("submissions").collect();
-    for (const submission of submissions) {
-      if (submission.eventId === undefined) {
-        await ctx.db.patch("submissions", submission._id, {
-          eventId: event._id,
-        });
-      }
-    }
-
+    await continueOrphanBackfill(ctx, event._id, null);
     return event._id;
+  },
+});
+
+export const backfillOrphanSubmissions = internalMutation({
+  args: {
+    eventId: v.id("events"),
+    cursor: v.union(v.string(), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await continueOrphanBackfill(ctx, args.eventId, args.cursor);
+    return null;
   },
 });
