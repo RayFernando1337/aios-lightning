@@ -256,6 +256,8 @@ export const update = mutation({
       capacity?: number;
       dryRun?: string;
       phase?: typeof event.phase;
+      rules?: ReturnType<typeof copyForCapacity>["rules"];
+      flow?: string[];
       updatedAt: number;
     } = { updatedAt: Date.now() };
 
@@ -291,6 +293,9 @@ export const update = mutation({
         );
       }
       patch.capacity = capacity;
+      const copy = copyForCapacity(capacity);
+      patch.rules = copy.rules;
+      patch.flow = copy.flow;
     }
 
     await ctx.db.patch("events", event._id, patch);
@@ -344,23 +349,36 @@ async function continueOrphanBackfill(
   });
 }
 
+async function seedAndBackfill(
+  ctx: MutationCtx,
+): Promise<Id<"events"> | null> {
+  const event = await resolveSeedEvent(ctx);
+  if (event === null) {
+    return null;
+  }
+
+  if ((await getStoredFeaturedEventId(ctx)) === null) {
+    await setFeaturedEvent(ctx, event._id);
+  }
+
+  await continueOrphanBackfill(ctx, event._id, null);
+  return event._id;
+}
+
 export const ensureSeed = mutation({
   args: {},
   returns: v.union(v.id("events"), v.null()),
   handler: async (ctx) => {
     await requireHost(ctx);
+    return await seedAndBackfill(ctx);
+  },
+});
 
-    const event = await resolveSeedEvent(ctx);
-    if (event === null) {
-      return null;
-    }
-
-    if ((await getStoredFeaturedEventId(ctx)) === null) {
-      await setFeaturedEvent(ctx, event._id);
-    }
-
-    await continueOrphanBackfill(ctx, event._id, null);
-    return event._id;
+export const ensurePublicSeed = mutation({
+  args: {},
+  returns: v.union(v.id("events"), v.null()),
+  handler: async (ctx) => {
+    return await seedAndBackfill(ctx);
   },
 });
 

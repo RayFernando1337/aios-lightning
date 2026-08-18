@@ -12,6 +12,6 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # Install sets a placeholder when Clerk is unset so the one-shot push succeeds.
 # Keep the watcher running so later convex/ edits stay in sync; gated routes
 # still need the real issuer.
-export CLERK_JWT_ISSUER_DOMAIN="${CLERK_JWT_ISSUER_DOMAIN:-https://unused.clerk.accounts.dev}"
+export CLERK_JWT_ISSUER_DOMAIN="${CLERK_JWT_ISSUER_DOMAIN:-https://placeholder.invalid}"
 
 exec bunx convex dev --start 'bun dev'

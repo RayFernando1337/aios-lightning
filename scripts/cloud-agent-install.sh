@@ -30,9 +30,17 @@ if [[ -n "${HOST_EMAILS:-}" ]]; then
   bunx convex env set HOST_EMAILS "$HOST_EMAILS"
 fi
 
-# auth.config.ts always reads this. A placeholder lets --once push public
-# functions when Clerk is unset. Gated routes still need the real issuer.
-bunx convex env set CLERK_JWT_ISSUER_DOMAIN \
-  "${CLERK_JWT_ISSUER_DOMAIN:-https://unused.clerk.accounts.dev}"
+# auth.config.ts always reads this. A non-registrable placeholder lets
+# --once push public functions when Clerk is unset. Never clobber a real
+# issuer that is already stored on the deployment.
+PLACEHOLDER_ISSUER="https://placeholder.invalid"
+if [[ -n "${CLERK_JWT_ISSUER_DOMAIN:-}" ]]; then
+  bunx convex env set CLERK_JWT_ISSUER_DOMAIN "$CLERK_JWT_ISSUER_DOMAIN"
+else
+  current="$(bunx convex env get CLERK_JWT_ISSUER_DOMAIN 2>/dev/null || true)"
+  if [[ -z "${current}" || "${current}" == "https://unused.clerk.accounts.dev" ]]; then
+    bunx convex env set CLERK_JWT_ISSUER_DOMAIN "$PLACEHOLDER_ISSUER"
+  fi
+fi
 
 bunx convex dev --once

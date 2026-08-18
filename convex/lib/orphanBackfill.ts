@@ -1,26 +1,8 @@
 import { Doc, Id } from "../_generated/dataModel";
 import { MutationCtx } from "../_generated/server";
+import { mergeOrphanFields } from "./orphanMerge";
 
 const BACKFILL_BATCH = 32;
-
-const STATUS_RANK = {
-  rejected: 0,
-  submitted: 1,
-  shortlisted: 2,
-  selected: 3,
-} as const;
-
-function preferOrphan(
-  orphan: Doc<"submissions">,
-  existing: Doc<"submissions">,
-): boolean {
-  const orphanRank = STATUS_RANK[orphan.status];
-  const existingRank = STATUS_RANK[existing.status];
-  if (orphanRank !== existingRank) {
-    return orphanRank > existingRank;
-  }
-  return orphan.updatedAt > existing.updatedAt;
-}
 
 async function hasOpenSelectedSlot(
   ctx: MutationCtx,
@@ -81,27 +63,12 @@ export async function attachOrphanToEvent(
     return;
   }
 
-  if (preferOrphan(orphan, existing)) {
-    const wouldAddSelected =
-      orphan.status === "selected" && existing.status !== "selected";
-    const keepExistingStatus =
-      wouldAddSelected && !(await hasOpenSelectedSlot(ctx, eventId));
-
-    await ctx.db.patch("submissions", existing._id, {
-      displayName: orphan.displayName,
-      demoTitle: orphan.demoTitle,
-      whatYoullShowLive: orphan.whatYoullShowLive,
-      takeaway: orphan.takeaway,
-      noSlides: orphan.noSlides,
-      noPitch: orphan.noPitch,
-      readyIn60s: orphan.readyIn60s,
-      status: keepExistingStatus ? existing.status : orphan.status,
-      email: orphan.email,
-      selectedAt: keepExistingStatus ? existing.selectedAt : orphan.selectedAt,
-      updatedAt: orphan.updatedAt,
-    });
-  }
-
+  const merged = mergeOrphanFields(
+    orphan,
+    existing,
+    await hasOpenSelectedSlot(ctx, eventId),
+  );
+  await ctx.db.patch("submissions", existing._id, merged);
   await ctx.db.delete("submissions", orphan._id);
 }
 
