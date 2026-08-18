@@ -8,6 +8,7 @@ import {
   query,
 } from "./_generated/server";
 import { requireHost } from "./lib/auth";
+import { countSelected } from "./lib/counts";
 import {
   getEventBySlug,
   getFeaturedEvent,
@@ -53,6 +54,17 @@ const hostEventValidator = v.object({
     selected: v.number(),
     rejected: v.number(),
   }),
+  featured: v.boolean(),
+});
+
+const openEventValidator = v.object({
+  _id: v.id("events"),
+  slug: v.string(),
+  name: v.string(),
+  when: v.string(),
+  room: v.string(),
+  capacity: v.number(),
+  selectedCount: v.number(),
   featured: v.boolean(),
 });
 
@@ -143,6 +155,39 @@ export const bySlug = query({
   handler: async (ctx, args) => {
     const event = await resolveEvent(ctx, args.slug);
     return event === null ? null : toPublicEvent(event);
+  },
+});
+
+export const listOpen = query({
+  args: {},
+  returns: v.array(openEventValidator),
+  handler: async (ctx) => {
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_phase", (q) => q.eq("phase", "open"))
+      .collect();
+    const featuredId = await getStoredFeaturedEventId(ctx);
+
+    const rows = [];
+    for (const event of events) {
+      rows.push({
+        _id: event._id,
+        slug: event.slug,
+        name: event.name,
+        when: event.when,
+        room: event.room,
+        capacity: event.capacity,
+        selectedCount: await countSelected(ctx, event._id),
+        featured: featuredId === event._id,
+      });
+    }
+
+    return rows.sort((a, b) => {
+      if (a.featured !== b.featured) {
+        return a.featured ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
   },
 });
 

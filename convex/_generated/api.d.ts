@@ -10,6 +10,7 @@
 
 import type * as events from "../events.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_counts from "../lib/counts.js";
 import type * as lib_eventLookup from "../lib/eventLookup.js";
 import type * as lib_hosts from "../lib/hosts.js";
 import type * as lib_limits from "../lib/limits.js";
@@ -29,6 +30,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   events: typeof events;
   "lib/auth": typeof lib_auth;
+  "lib/counts": typeof lib_counts;
   "lib/eventLookup": typeof lib_eventLookup;
   "lib/hosts": typeof lib_hosts;
   "lib/limits": typeof lib_limits;

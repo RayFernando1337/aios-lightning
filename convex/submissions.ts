@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireHost, requireIdentity } from "./lib/auth";
+import { identityIsHost, requireHost, requireIdentity } from "./lib/auth";
+import { countSelected } from "./lib/counts";
 import { requireEvent, resolveEvent } from "./lib/eventLookup";
 import { FIELD_LIMITS } from "./lib/limits";
 import { requireText } from "./lib/text";
@@ -20,6 +21,17 @@ const boardEntry = v.object({
   takeaway: v.string(),
 });
 
+const mineAllEntry = v.object({
+  _id: v.id("submissions"),
+  eventId: v.id("events"),
+  eventName: v.string(),
+  eventSlug: v.string(),
+  eventWhen: v.string(),
+  eventRoom: v.string(),
+  status: statusValidator,
+  title: v.string(),
+});
+
 /** The signed-in applicant's submission for one event, or null. */
 export const mine = query({
   args: { slug: v.optional(v.string()) },
@@ -35,12 +47,54 @@ export const mine = query({
       return null;
     }
 
-    return await ctx.db
+    return (
+      (await ctx.db
+        .query("submissions")
+        .withIndex("by_event_user", (q) =>
+          q.eq("eventId", event._id).eq("userId", identity.subject),
+        )
+        .first()) ?? null
+    );
+  },
+});
+
+/** Every signup belonging to the signed-in applicant, across nights. */
+export const mineAll = query({
+  args: {},
+  returns: v.array(mineAllEntry),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      return [];
+    }
+
+    const rows = await ctx.db
       .query("submissions")
-      .withIndex("by_event_user", (q) =>
-        q.eq("eventId", event._id).eq("userId", identity.subject),
-      )
-      .unique();
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    const result = [];
+    for (const row of rows) {
+      if (row.eventId === undefined) {
+        continue;
+      }
+      const event = await ctx.db.get("events", row.eventId);
+      if (event === null) {
+        continue;
+      }
+      result.push({
+        _id: row._id,
+        eventId: event._id,
+        eventName: event.name,
+        eventSlug: event.slug,
+        eventWhen: event.when,
+        eventRoom: event.room,
+        status: row.status,
+        title: row.demoTitle,
+      });
+    }
+
+    return result;
   },
 });
 
@@ -76,7 +130,7 @@ export const submit = mutation({
       .withIndex("by_event_user", (q) =>
         q.eq("eventId", event._id).eq("userId", identity.subject),
       )
-      .unique();
+      .first();
 
     if (existing === null && event.phase === "closed") {
       throw new ConvexError("Applications are closed for this event.");
@@ -121,6 +175,70 @@ export const submit = mutation({
       status: "submitted",
       createdAt: Date.now(),
     });
+  },
+});
+
+/** Move a signup onto another open night. Applicant or host. */
+export const move = mutation({
+  args: {
+    submissionId: v.id("submissions"),
+    toEventId: v.id("events"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const submission = await ctx.db.get("submissions", args.submissionId);
+    if (submission === null) {
+      throw new ConvexError("Signup not found.");
+    }
+
+    const identity = await requireIdentity(ctx);
+    const host = identityIsHost(identity);
+    if (!host && submission.userId !== identity.subject) {
+      throw new ConvexError("You can only move your own signup.");
+    }
+
+    const target = await ctx.db.get("events", args.toEventId);
+    if (target === null) {
+      throw new ConvexError("Event not found.");
+    }
+    if (target.phase !== "open") {
+      throw new ConvexError("That night is not open.");
+    }
+
+    if (submission.eventId === args.toEventId) {
+      return null;
+    }
+
+    const collision = await ctx.db
+      .query("submissions")
+      .withIndex("by_event_user", (q) =>
+        q.eq("eventId", args.toEventId).eq("userId", submission.userId),
+      )
+      .first();
+    if (collision !== null && collision._id !== submission._id) {
+      throw new ConvexError(
+        "Already signed up for that night. Remove or keep the existing one.",
+      );
+    }
+
+    if (submission.status === "selected") {
+      const selected = await countSelected(ctx, args.toEventId);
+      if (selected >= target.capacity) {
+        await ctx.db.patch("submissions", submission._id, {
+          eventId: args.toEventId,
+          status: "shortlisted",
+          selectedAt: undefined,
+          updatedAt: Date.now(),
+        });
+        return null;
+      }
+    }
+
+    await ctx.db.patch("submissions", submission._id, {
+      eventId: args.toEventId,
+      updatedAt: Date.now(),
+    });
+    return null;
   },
 });
 
