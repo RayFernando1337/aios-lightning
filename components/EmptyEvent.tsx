@@ -1,3 +1,4 @@
+import MainNightLink from "@/components/MainNightLink";
 import SeedIfEmpty from "@/components/SeedIfEmpty";
 import SiteHeader from "@/components/SiteHeader";
 import { SITE } from "@/lib/content";
@@ -9,7 +10,8 @@ export default function EmptyEvent() {
       <SeedIfEmpty />
       <SiteHeader />
       <main className={pageMain}>
-        <p className={eyebrow}>{SITE.brand}</p>
+        <MainNightLink />
+        <p className={`${eyebrow} mt-4`}>{SITE.brand}</p>
         <h1 className="font-display mt-3 text-5xl tracking-[-0.035em] sm:text-7xl">
           NO NIGHT ON THE MARQUEE
         </h1>

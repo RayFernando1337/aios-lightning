@@ -7,7 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { readableError } from "@/lib/errors";
 import { STATUS_LABELS, STATUS_ORDER, SubmissionStatus } from "@/lib/status";
-import { card } from "@/lib/styles";
+import { buttonSecondary, card, fieldLabel, input } from "@/lib/styles";
 
 const ACTION_ORDER: SubmissionStatus[] = [
   "submitted",
@@ -93,7 +93,9 @@ function Triage({
   capacity: number;
 }) {
   const submissions = useQuery(api.submissions.listForHost, { eventId });
+  const openNights = useQuery(api.events.listOpen);
   const setStatus = useMutation(api.submissions.setStatus);
+  const move = useMutation(api.submissions.move);
 
   const [filter, setFilter] = useState<Filter>("all");
   const [pendingId, setPendingId] = useState<Id<"submissions"> | null>(null);
@@ -103,6 +105,7 @@ function Triage({
     id: Id<"submissions">;
     message: string;
   } | null>(null);
+  const [movedNote, setMovedNote] = useState<string | null>(null);
 
   if (submissions === undefined) {
     return <p className="text-muted">Loading submissions...</p>;
@@ -120,6 +123,7 @@ function Triage({
       ? sorted
       : sorted.filter((submission) => submission.status === filter);
   const cards = visible.map(toTriageCard);
+  const moveTargets = (openNights ?? []).filter((night) => night._id !== eventId);
 
   async function changeStatus(
     submissionId: Id<"submissions">,
@@ -129,6 +133,33 @@ function Triage({
     setFailure(null);
     try {
       await setStatus({ submissionId, status });
+    } catch (caught) {
+      setFailure({ id: submissionId, message: readableError(caught) });
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  async function moveSignup(
+    submissionId: Id<"submissions">,
+    toEventId: Id<"events">,
+    title: string,
+    status: SubmissionStatus,
+  ) {
+    const target = moveTargets.find((night) => night._id === toEventId);
+    setPendingId(submissionId);
+    setFailure(null);
+    try {
+      await move({ submissionId, toEventId });
+      const demoted =
+        status === "selected" &&
+        target !== undefined &&
+        target.selectedCount >= target.capacity;
+      setMovedNote(
+        demoted
+          ? `Moved ${title} to ${target.name}. Now shortlisted. That night is full.`
+          : `Moved ${title}${target !== undefined ? ` to ${target.name}` : ""}.`,
+      );
     } catch (caught) {
       setFailure({ id: submissionId, message: readableError(caught) });
     } finally {
@@ -174,6 +205,12 @@ function Triage({
         </div>
       </div>
 
+      {movedNote !== null && (
+        <p className="border border-admit/40 bg-admit/10 px-4 py-3 text-sm text-paper">
+          {movedNote}
+        </p>
+      )}
+
       {cards.length === 0 ? (
         <p className={`${card} text-muted`}>Nothing here yet.</p>
       ) : (
@@ -187,6 +224,19 @@ function Triage({
                   failure?.id === triageCard.id ? failure.message : null
                 }
                 onChange={(status) => changeStatus(triageCard.id, status)}
+                moveTargets={moveTargets.map((night) => ({
+                  id: night._id,
+                  name: night.name,
+                  when: night.when,
+                }))}
+                onMove={(toEventId) =>
+                  void moveSignup(
+                    triageCard.id,
+                    toEventId,
+                    triageCard.title,
+                    triageCard.status,
+                  )
+                }
               />
             </li>
           ))}
@@ -201,13 +251,18 @@ export function SubmissionRow({
   pending,
   failure,
   onChange,
+  moveTargets,
+  onMove,
 }: {
   card: TriageCard;
   pending: boolean;
   failure: string | null;
   onChange: (status: SubmissionStatus) => void;
+  moveTargets?: { id: Id<"events">; name: string; when: string }[];
+  onMove?: (toEventId: Id<"events">) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [moveTo, setMoveTo] = useState("");
 
   return (
     <div>
@@ -287,6 +342,42 @@ export function SubmissionRow({
           );
         })}
       </div>
+
+      {moveTargets !== undefined && moveTargets.length > 0 && onMove !== undefined && (
+        <div className="mt-4 space-y-2 border-t border-line pt-4">
+          <p className={fieldLabel}>Move to…</p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <select
+              className={input}
+              value={moveTo}
+              disabled={pending}
+              onChange={(event) => setMoveTo(event.target.value)}
+            >
+              <option value="">Another night</option>
+              {moveTargets.map((night) => (
+                <option key={night.id} value={night.id}>
+                  {night.name} · {night.when}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className={buttonSecondary}
+              disabled={pending || moveTo === ""}
+              onClick={() => {
+                const target = moveTargets.find((night) => night.id === moveTo);
+                if (target === undefined) {
+                  return;
+                }
+                onMove(target.id);
+                setMoveTo("");
+              }}
+            >
+              Move
+            </button>
+          </div>
+        </div>
+      )}
 
       {failure !== null && (
         <p className="mt-3 border border-admit/40 bg-admit/10 px-4 py-3 text-sm text-paper">

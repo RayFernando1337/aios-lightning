@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import BoardList from "@/components/BoardList";
 import EmptyEvent from "@/components/EmptyEvent";
+import MainNightLink from "@/components/MainNightLink";
 import SiteHeader from "@/components/SiteHeader";
 import { api } from "@/convex/_generated/api";
 import { eventApplyPath, eventBoardPath } from "@/lib/paths";
@@ -17,6 +18,7 @@ export default function BoardEventPage({ slug }: { slug?: string }) {
     slug !== undefined ? eventApplyPath(slug) : "/apply";
   const boardHref =
     slug !== undefined ? eventBoardPath(slug) : "/board";
+  const house = slug === undefined;
 
   if (event === undefined) {
     return (
@@ -38,9 +40,15 @@ export default function BoardEventPage({ slug }: { slug?: string }) {
 
   return (
     <>
-      <SiteHeader applyHref={applyHref} boardHref={boardHref} />
+      <SiteHeader
+        applyHref={applyHref}
+        boardHref={boardHref}
+        eventName={event.name}
+        kind={house ? "house" : "room"}
+      />
       <main className={`${pageMain} max-w-4xl`}>
-        <p className={eyebrow}>{roomLine}</p>
+        <MainNightLink />
+        <p className={`${eyebrow} mt-4`}>{roomLine}</p>
         <h1 className="font-display mt-3 text-5xl tracking-[-0.035em] sm:text-7xl">
           TONIGHT&apos;S BOARD
         </h1>

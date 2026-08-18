@@ -9,12 +9,14 @@ import {
   useQuery,
 } from "convex/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import StatusChip from "@/components/StatusChip";
 import { api } from "@/convex/_generated/api";
-import { Doc } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { FIELD_LIMITS } from "@/convex/lib/limits";
 import { readableError } from "@/lib/errors";
+import { eventApplyPath } from "@/lib/paths";
 import { APPLICANT_NEXT_STEP } from "@/lib/status";
 import {
   buttonPrimary,
@@ -28,13 +30,20 @@ import {
 
 type ApplyFormProps = {
   slug?: string;
+  eventId: Id<"events">;
   applyHref: string;
   boardHref: string;
   capacity: number;
   dryRun: string;
   phase: "open" | "closed";
   eventName: string;
+  eventWhen: string;
+  eventRoom: string;
 };
+
+function eventLine(name: string, when: string, room: string): string {
+  return room.length > 0 ? `${name} · ${when} · ${room}` : `${name} · ${when}`;
+}
 
 export default function ApplyForm(props: ApplyFormProps) {
   return (
@@ -45,9 +54,11 @@ export default function ApplyForm(props: ApplyFormProps) {
 
       <Unauthenticated>
         <div className={card}>
-          <p className="font-semibold">Sign in to apply.</p>
+          <p className={eyebrow}>{props.eventName}</p>
+          <p className="mt-2 font-semibold">Sign in to apply.</p>
           <p className="mt-1 text-sm text-muted">
-            One account, one slot on this night. It keeps the list honest.
+            {eventLine(props.eventName, props.eventWhen, props.eventRoom)}. One
+            account, one slot on this night.
           </p>
           <div className="mt-4">
             <SignInButton mode="modal" forceRedirectUrl={props.applyHref}>
@@ -67,6 +78,8 @@ export default function ApplyForm(props: ApplyFormProps) {
 function ApplyFlow(props: ApplyFormProps) {
   const queryArgs = props.slug !== undefined ? { slug: props.slug } : {};
   const mine = useQuery(api.submissions.mine, queryArgs);
+  const mineAll = useQuery(api.submissions.mineAll);
+  const openNights = useQuery(api.events.listOpen);
   const { user } = useUser();
   const [editing, setEditing] = useState(false);
 
@@ -79,7 +92,8 @@ function ApplyFlow(props: ApplyFormProps) {
       <div className={card}>
         <p className="font-semibold">Applications are closed.</p>
         <p className="mt-1 text-sm text-muted">
-          {props.eventName} is no longer taking new demos.
+          {eventLine(props.eventName, props.eventWhen, props.eventRoom)} is no
+          longer taking new demos.
         </p>
         <div className="mt-4">
           <Link href={props.boardHref} className={buttonSecondary}>
@@ -90,6 +104,11 @@ function ApplyFlow(props: ApplyFormProps) {
     );
   }
 
+  const otherSignups = (mineAll ?? []).filter(
+    (row) => row.eventId !== props.eventId,
+  );
+  const nights = openNights ?? [];
+
   if (mine !== null && !editing) {
     return (
       <SubmittedCard
@@ -97,19 +116,97 @@ function ApplyFlow(props: ApplyFormProps) {
         boardHref={props.boardHref}
         capacity={props.capacity}
         dryRun={props.dryRun}
+        eventName={props.eventName}
+        eventWhen={props.eventWhen}
+        eventRoom={props.eventRoom}
+        eventId={props.eventId}
+        openNights={nights}
         onEdit={() => setEditing(true)}
       />
     );
   }
 
   return (
-    <Fields
-      key={mine?._id ?? "new"}
-      existing={mine}
-      slug={props.slug}
-      fallbackName={user?.fullName ?? user?.firstName ?? ""}
-      onSaved={() => setEditing(false)}
-    />
+    <div className="space-y-6">
+      <EventIdentity
+        eventName={props.eventName}
+        eventWhen={props.eventWhen}
+        eventRoom={props.eventRoom}
+      />
+      {mine === null && otherSignups.length > 0 && (
+        <OtherNightBanner
+          signups={otherSignups}
+          toEventId={props.eventId}
+        />
+      )}
+      <Fields
+        key={mine?._id ?? "new"}
+        existing={mine}
+        slug={props.slug}
+        fallbackName={user?.fullName ?? user?.firstName ?? ""}
+        onSaved={() => setEditing(false)}
+        secondTalk={mine === null && otherSignups.length > 0}
+      />
+    </div>
+  );
+}
+
+function EventIdentity({
+  eventName,
+  eventWhen,
+  eventRoom,
+}: {
+  eventName: string;
+  eventWhen: string;
+  eventRoom: string;
+}) {
+  return (
+    <div>
+      <p className={eyebrow}>This night</p>
+      <p className="font-display mt-2 text-3xl tracking-[-0.035em] text-paper">
+        {eventName}
+      </p>
+      <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-muted uppercase">
+        {eventRoom.length > 0 ? `${eventWhen} · ${eventRoom}` : eventWhen}
+      </p>
+    </div>
+  );
+}
+
+function OtherNightBanner({
+  signups,
+  toEventId,
+}: {
+  signups: {
+    _id: Id<"submissions">;
+    eventName: string;
+    eventWhen: string;
+    eventRoom: string;
+  }[];
+  toEventId: Id<"events">;
+}) {
+  const first = signups[0];
+  if (first === undefined) {
+    return null;
+  }
+
+  return (
+    <div className="border border-admit/40 bg-admit/10 p-5 sm:p-6">
+      <p className={eyebrow}>Wrong room?</p>
+      <p className="mt-2 text-sm text-cream/90">
+        You&apos;re already signed up for {first.eventName} ({first.eventWhen}
+        {first.eventRoom.length > 0 ? ` · ${first.eventRoom}` : ""}).
+        Submitting here creates a second talk. Move that signup here instead?
+      </p>
+      <div className="mt-4">
+        <MoveControl
+          submissionId={first._id}
+          targets={[{ id: toEventId, label: "This night" }]}
+          defaultTarget={toEventId}
+          primaryLabel="Move that signup here"
+        />
+      </div>
+    </div>
   );
 }
 
@@ -118,18 +215,40 @@ function SubmittedCard({
   boardHref,
   capacity,
   dryRun,
+  eventName,
+  eventWhen,
+  eventRoom,
+  eventId,
+  openNights,
   onEdit,
 }: {
   submission: Doc<"submissions">;
   boardHref: string;
   capacity: number;
   dryRun: string;
+  eventName: string;
+  eventWhen: string;
+  eventRoom: string;
+  eventId: Id<"events">;
+  openNights: {
+    _id: Id<"events">;
+    slug: string;
+    name: string;
+    when: string;
+    room: string;
+  }[];
   onEdit: () => void;
 }) {
   const isOut = submission.status === "rejected";
+  const others = openNights.filter((night) => night._id !== eventId);
 
   return (
     <div className="space-y-4">
+      <EventIdentity
+        eventName={eventName}
+        eventWhen={eventWhen}
+        eventRoom={eventRoom}
+      />
       <div className={card}>
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -186,6 +305,31 @@ function SubmittedCard({
         </div>
       )}
 
+      {others.length > 0 && (
+        <div className={card}>
+          <p className={eyebrow}>Wrong room?</p>
+          <p className="mt-2 text-sm text-muted">
+            Move this signup onto another open night.
+            {submission.status === "selected"
+              ? " If that night is full, this talk becomes shortlisted."
+              : ""}
+          </p>
+          <div className="mt-4">
+            <MoveControl
+              submissionId={submission._id}
+              targets={others.map((night) => ({
+                id: night._id,
+                label:
+                  night.room.length > 0
+                    ? `${night.name} · ${night.when} · ${night.room}`
+                    : `${night.name} · ${night.when}`,
+                href: eventApplyPath(night.slug),
+              }))}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row">
         <button type="button" onClick={onEdit} className={buttonSecondary}>
           Edit my application
@@ -198,16 +342,92 @@ function SubmittedCard({
   );
 }
 
+function MoveControl({
+  submissionId,
+  targets,
+  defaultTarget,
+  primaryLabel = "Move",
+}: {
+  submissionId: Id<"submissions">;
+  targets: { id: Id<"events">; label: string; href?: string }[];
+  defaultTarget?: Id<"events">;
+  primaryLabel?: string;
+}) {
+  const router = useRouter();
+  const move = useMutation(api.submissions.move);
+  const [targetId, setTargetId] = useState<string>(
+    defaultTarget ?? targets[0]?.id ?? "",
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleMove() {
+    const target = targets.find((night) => night.id === targetId);
+    if (target === undefined) {
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await move({ submissionId, toEventId: target.id });
+      if (target.href !== undefined) {
+        router.push(target.href);
+      }
+    } catch (caught) {
+      setError(readableError(caught));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (targets.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      {targets.length > 1 && (
+        <select
+          className={input}
+          value={targetId}
+          onChange={(event) => setTargetId(event.target.value)}
+        >
+          {targets.map((night) => (
+            <option key={night.id} value={night.id}>
+              {night.label}
+            </option>
+          ))}
+        </select>
+      )}
+      <button
+        type="button"
+        className={buttonPrimary}
+        disabled={saving || targetId === ""}
+        onClick={() => void handleMove()}
+      >
+        {saving ? "Moving..." : primaryLabel}
+      </button>
+      {error !== null && (
+        <p className="border border-admit/40 bg-admit/10 px-4 py-3 text-sm text-paper">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Fields({
   existing,
   slug,
   fallbackName,
   onSaved,
+  secondTalk,
 }: {
   existing: Doc<"submissions"> | null;
   slug?: string;
   fallbackName: string;
   onSaved: () => void;
+  secondTalk: boolean;
 }) {
   const submit = useMutation(api.submissions.submit);
 
@@ -356,12 +576,18 @@ function Fields({
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <button type="submit" className={buttonPrimary} disabled={saving}>
+        <button
+          type="submit"
+          className={secondTalk ? buttonSecondary : buttonPrimary}
+          disabled={saving}
+        >
           {saving
             ? "Sending..."
             : existing !== null
               ? "Save changes"
-              : "Submit my application"}
+              : secondTalk
+                ? "Sign up for this night too"
+                : "Submit my application"}
         </button>
         {existing !== null && (
           <button
