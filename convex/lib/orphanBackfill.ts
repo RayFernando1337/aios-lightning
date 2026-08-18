@@ -22,6 +22,25 @@ function preferOrphan(
   return orphan.updatedAt > existing.updatedAt;
 }
 
+async function hasOpenSelectedSlot(
+  ctx: MutationCtx,
+  eventId: Id<"events">,
+): Promise<boolean> {
+  const event = await ctx.db.get("events", eventId);
+  if (event === null) {
+    return false;
+  }
+
+  const selected = await ctx.db
+    .query("submissions")
+    .withIndex("by_event_status", (q) =>
+      q.eq("eventId", eventId).eq("status", "selected"),
+    )
+    .take(event.capacity);
+
+  return selected.length < event.capacity;
+}
+
 export async function isSubmissionBackfillDone(
   ctx: MutationCtx,
 ): Promise<boolean> {
@@ -42,6 +61,18 @@ export async function attachOrphanToEvent(
     .unique();
 
   if (existing === null) {
+    if (
+      orphan.status === "selected" &&
+      !(await hasOpenSelectedSlot(ctx, eventId))
+    ) {
+      await ctx.db.patch("submissions", orphan._id, {
+        eventId,
+        status: "shortlisted",
+        selectedAt: undefined,
+      });
+      return;
+    }
+
     await ctx.db.patch("submissions", orphan._id, { eventId });
     return;
   }
@@ -51,6 +82,11 @@ export async function attachOrphanToEvent(
   }
 
   if (preferOrphan(orphan, existing)) {
+    const wouldAddSelected =
+      orphan.status === "selected" && existing.status !== "selected";
+    const keepExistingStatus =
+      wouldAddSelected && !(await hasOpenSelectedSlot(ctx, eventId));
+
     await ctx.db.patch("submissions", existing._id, {
       displayName: orphan.displayName,
       demoTitle: orphan.demoTitle,
@@ -59,9 +95,9 @@ export async function attachOrphanToEvent(
       noSlides: orphan.noSlides,
       noPitch: orphan.noPitch,
       readyIn60s: orphan.readyIn60s,
-      status: orphan.status,
+      status: keepExistingStatus ? existing.status : orphan.status,
       email: orphan.email,
-      selectedAt: orphan.selectedAt,
+      selectedAt: keepExistingStatus ? existing.selectedAt : orphan.selectedAt,
       updatedAt: orphan.updatedAt,
     });
   }
