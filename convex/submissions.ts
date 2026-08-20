@@ -1,7 +1,6 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError, Infer, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { identityIsHost, requireHost, requireIdentity } from "./lib/auth";
-import { countSelected } from "./lib/counts";
 import { requireEvent, resolveEvent } from "./lib/eventLookup";
 import { FIELD_LIMITS } from "./lib/limits";
 import { requireText } from "./lib/text";
@@ -178,6 +177,17 @@ export const submit = mutation({
   },
 });
 
+type Status = Infer<typeof statusValidator>;
+
+// Selection is a per-night host decision, so a signup that moves re-enters
+// the target night's funnel instead of carrying its verdict along.
+const STATUS_AFTER_MOVE: Record<Status, Status> = {
+  submitted: "submitted",
+  shortlisted: "shortlisted",
+  selected: "shortlisted",
+  rejected: "submitted",
+};
+
 /** Move a signup onto another open night. Applicant or host. */
 export const move = mutation({
   args: {
@@ -221,21 +231,10 @@ export const move = mutation({
       );
     }
 
-    if (submission.status === "selected") {
-      const selected = await countSelected(ctx, args.toEventId);
-      if (selected >= target.capacity) {
-        await ctx.db.patch("submissions", submission._id, {
-          eventId: args.toEventId,
-          status: "shortlisted",
-          selectedAt: undefined,
-          updatedAt: Date.now(),
-        });
-        return null;
-      }
-    }
-
     await ctx.db.patch("submissions", submission._id, {
       eventId: args.toEventId,
+      status: STATUS_AFTER_MOVE[submission.status],
+      selectedAt: undefined,
       updatedAt: Date.now(),
     });
     return null;

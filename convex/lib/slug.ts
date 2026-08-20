@@ -35,7 +35,3 @@ export function hasSlugShape(slug: string): boolean {
     /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
   );
 }
-
-export function isValidSlug(slug: string): boolean {
-  return hasSlugShape(slug) && !isReservedSlug(slug);
-}

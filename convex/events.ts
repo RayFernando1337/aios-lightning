@@ -326,15 +326,10 @@ export const update = mutation({
     }
     if (args.capacity !== undefined) {
       const capacity = requireCapacity(args.capacity);
-      const selected = await ctx.db
-        .query("submissions")
-        .withIndex("by_event_status", (q) =>
-          q.eq("eventId", event._id).eq("status", "selected"),
-        )
-        .collect();
-      if (capacity < selected.length) {
+      const selected = await countSelected(ctx, event._id);
+      if (capacity < selected) {
         throw new ConvexError(
-          `Capacity cannot drop below the ${selected.length} already selected. Move someone out first.`,
+          `Capacity cannot drop below the ${selected} already selected. Move someone out first.`,
         );
       }
       patch.capacity = capacity;
@@ -423,6 +418,11 @@ export const ensurePublicSeed = mutation({
   args: {},
   returns: v.union(v.id("events"), v.null()),
   handler: async (ctx) => {
+    // Unauthenticated post-deploy recovery only. Once any event exists,
+    // anonymous callers must not write settings or schedule backfill work.
+    if ((await ctx.db.query("events").first()) !== null) {
+      return null;
+    }
     return await seedAndBackfill(ctx);
   },
 });
