@@ -16,7 +16,7 @@ import {
   fieldLabel,
   input,
 } from "@/lib/styles";
-import { TimeKey, defaultDateISO, formatWhen } from "@/lib/when";
+import { TimeKey, formatWhen } from "@/lib/when";
 
 export default function HostDesk() {
   return (
@@ -104,7 +104,7 @@ function Desk() {
 function CreateEventForm() {
   const create = useMutation(api.events.create);
   const [name, setName] = useState("");
-  const [dateISO, setDateISO] = useState(() => defaultDateISO());
+  const [dateISO, setDateISO] = useState("");
   const [timeKey, setTimeKey] = useState<TimeKey>("6pm");
   const [where, setWhere] = useState("");
   const [room, setRoom] = useState("");
@@ -114,6 +114,9 @@ function CreateEventForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (dateISO === "") {
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -125,7 +128,7 @@ function CreateEventForm() {
         capacity: Number(capacity),
       });
       setName("");
-      setDateISO(defaultDateISO());
+      setDateISO("");
       setTimeKey("6pm");
       setWhere("");
       setRoom("");
@@ -219,7 +222,11 @@ function CreateEventForm() {
           {error}
         </p>
       )}
-      <button type="submit" className={buttonPrimary} disabled={saving}>
+      <button
+        type="submit"
+        className={buttonPrimary}
+        disabled={saving || dateISO === ""}
+      >
         {saving ? "Posting..." : "Post night"}
       </button>
     </form>

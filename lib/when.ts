@@ -10,14 +10,10 @@ export const TIME_OPTIONS = [
   "8pm",
   "8:30pm",
   "9pm",
+  "9:30pm",
 ] as const;
 
 export type TimeKey = (typeof TIME_OPTIONS)[number];
-
-export type DateOption = {
-  dateISO: string;
-  label: string;
-};
 
 const MONTHS = [
   "Jan",
@@ -34,7 +30,6 @@ const MONTHS = [
   "Dec",
 ] as const;
 
-const UPCOMING_DAYS = 16;
 const WHEN_RE =
   /(?:^|,\s+)([A-Za-z]{3}) ([A-Za-z]{3}) (\d{1,2})(?: · doors (.+))?$/;
 
@@ -50,7 +45,6 @@ function laParts(ms: number): {
   year: number;
   month: number;
   day: number;
-  hour: number;
 } {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: TIME_ZONE,
@@ -58,8 +52,6 @@ function laParts(ms: number): {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    hour: "2-digit",
-    hourCycle: "h23",
   }).formatToParts(new Date(ms));
 
   return {
@@ -67,7 +59,6 @@ function laParts(ms: number): {
     year: Number(part(parts, "year")),
     month: Number(part(parts, "month")),
     day: Number(part(parts, "day")),
-    hour: Number(part(parts, "hour")),
   };
 }
 
@@ -81,7 +72,7 @@ function laCivilNoon(dateISO: string): Date {
   return new Date(Date.UTC(year, month - 1, day, 20, 0, 0));
 }
 
-function labelForISO(dateISO: string): string {
+export function labelForISO(dateISO: string): string {
   const date = laCivilNoon(dateISO);
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: TIME_ZONE,
@@ -93,11 +84,19 @@ function labelForISO(dateISO: string): string {
   return `${part(parts, "weekday")} ${part(parts, "month")} ${part(parts, "day")}`;
 }
 
-function addDaysISO(dateISO: string, days: number): string {
+/** Local civil components: the host picks the calendar day they mean in SF. */
+export function dateFromISO(dateISO: string): Date {
   const [year, month, day] = dateISO.split("-").map(Number);
-  const shifted = new Date(Date.UTC(year, month - 1, day + days, 20, 0, 0));
-  const la = laParts(shifted.getTime());
-  return toISO(la.year, la.month, la.day);
+  return new Date(year, month - 1, day);
+}
+
+export function isoFromDate(date: Date): string {
+  return toISO(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+
+export function todayISO(nowMs: number = Date.now()): string {
+  const now = laParts(nowMs);
+  return toISO(now.year, now.month, now.day);
 }
 
 export function isTimeKey(value: string): value is TimeKey {
@@ -106,36 +105,6 @@ export function isTimeKey(value: string): value is TimeKey {
 
 export function formatWhen(dateISO: string, timeKey: string): string {
   return `${labelForISO(dateISO)} · doors ${timeKey}`;
-}
-
-export function upcomingDateOptions(nowMs: number = Date.now()): DateOption[] {
-  const now = laParts(nowMs);
-  let startISO = toISO(now.year, now.month, now.day);
-  if (now.hour >= 23) {
-    startISO = addDaysISO(startISO, 1);
-  }
-
-  const options: DateOption[] = [];
-  for (let offset = 0; offset < UPCOMING_DAYS; offset += 1) {
-    const dateISO = addDaysISO(startISO, offset);
-    options.push({ dateISO, label: labelForISO(dateISO) });
-  }
-  return options;
-}
-
-export function defaultDateISO(nowMs: number = Date.now()): string {
-  const options = upcomingDateOptions(nowMs);
-  const thursday = options.find((option) => option.label.startsWith("Thu "));
-  return thursday?.dateISO ?? options[0]?.dateISO ?? toISO(...civilToday(nowMs));
-}
-
-function civilToday(nowMs: number): [number, number, number] {
-  const now = laParts(nowMs);
-  return [now.year, now.month, now.day];
-}
-
-export function defaultWhen(nowMs: number = Date.now()): string {
-  return formatWhen(defaultDateISO(nowMs), "6pm");
 }
 
 function monthNumber(month: string): number | null {
@@ -168,16 +137,6 @@ function dateISOForLabel(label: string, nowMs: number): string | null {
   return null;
 }
 
-function dateISOFromLabel(label: string, nowMs: number): string | null {
-  const fromUpcoming = upcomingDateOptions(nowMs).find(
-    (option) => option.label === label,
-  );
-  if (fromUpcoming !== undefined) {
-    return fromUpcoming.dateISO;
-  }
-  return dateISOForLabel(label, nowMs);
-}
-
 export function parseWhen(
   when: string,
   nowMs: number = Date.now(),
@@ -192,7 +151,7 @@ export function parseWhen(
     return null;
   }
 
-  const dateISO = dateISOFromLabel(
+  const dateISO = dateISOForLabel(
     `${match[1]} ${match[2]} ${match[3]}`,
     nowMs,
   );
