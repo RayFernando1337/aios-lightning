@@ -348,6 +348,7 @@ export function SubmissionRow({
           <MoveSignupControl
             submissionId={card.id}
             targets={move.targets}
+            requireChoice
             onMoved={move.onMoved}
           />
         </div>

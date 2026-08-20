@@ -2,7 +2,13 @@
 
 import { useMemo } from "react";
 import { input } from "@/lib/styles";
-import { TIME_OPTIONS, TimeKey, isTimeKey, upcomingDateOptions } from "@/lib/when";
+import {
+  TIME_OPTIONS,
+  TimeKey,
+  formatWhen,
+  isTimeKey,
+  upcomingDateOptions,
+} from "@/lib/when";
 
 export default function WhenPicker({
   dateISO,
@@ -13,7 +19,19 @@ export default function WhenPicker({
   timeKey: TimeKey;
   onChange: (dateISO: string, timeKey: TimeKey) => void;
 }) {
-  const options = useMemo(() => upcomingDateOptions(), []);
+  const options = useMemo(() => {
+    const upcoming = upcomingDateOptions();
+    if (upcoming.some((option) => option.dateISO === dateISO)) {
+      return upcoming;
+    }
+    return [
+      {
+        dateISO,
+        label: formatWhen(dateISO, timeKey).split(" · ")[0] ?? dateISO,
+      },
+      ...upcoming,
+    ];
+  }, [dateISO, timeKey]);
 
   return (
     <div className="grid gap-2 sm:grid-cols-2">

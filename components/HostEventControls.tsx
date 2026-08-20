@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { readableError } from "@/lib/errors";
 import { buttonSecondary, fieldHint, fieldLabel } from "@/lib/styles";
-import { TimeKey, defaultDateISO, formatWhen } from "@/lib/when";
+import { TimeKey, defaultDateISO, formatWhen, parseWhen } from "@/lib/when";
 
 export default function HostEventControls({
   eventId,
@@ -26,10 +26,15 @@ export default function HostEventControls({
   const update = useMutation(api.events.update);
   const setFeatured = useMutation(api.events.setFeatured);
   const [error, setError] = useState<string | null>(null);
-  const [dateISO, setDateISO] = useState(() => defaultDateISO());
-  const [timeKey, setTimeKey] = useState<TimeKey>("6pm");
+  const [dateISO, setDateISO] = useState(
+    () => parseWhen(when)?.dateISO ?? defaultDateISO(),
+  );
+  const [timeKey, setTimeKey] = useState<TimeKey>(
+    () => parseWhen(when)?.timeKey ?? "6pm",
+  );
+  const [touched, setTouched] = useState(false);
   const [savingWhen, setSavingWhen] = useState(false);
-  const draftWhen = formatWhen(dateISO, timeKey);
+  const draftWhen = touched ? formatWhen(dateISO, timeKey) : when;
 
   async function togglePhase() {
     setError(null);
@@ -76,6 +81,7 @@ export default function HostEventControls({
           dateISO={dateISO}
           timeKey={timeKey}
           onChange={(nextDate, nextTime) => {
+            setTouched(true);
             setDateISO(nextDate);
             setTimeKey(nextTime);
           }}

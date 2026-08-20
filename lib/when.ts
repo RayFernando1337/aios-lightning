@@ -19,7 +19,23 @@ export type DateOption = {
   label: string;
 };
 
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
 const UPCOMING_DAYS = 16;
+const WHEN_RE = /^([A-Za-z]{3}) ([A-Za-z]{3}) (\d{1,2}) · doors (.+)$/;
 
 function part(
   parts: Intl.DateTimeFormatPart[],
@@ -119,4 +135,64 @@ function civilToday(nowMs: number): [number, number, number] {
 
 export function defaultWhen(nowMs: number = Date.now()): string {
   return formatWhen(defaultDateISO(nowMs), "6pm");
+}
+
+function monthNumber(month: string): number | null {
+  const index = MONTHS.findIndex((name) => name === month);
+  return index === -1 ? null : index + 1;
+}
+
+function dateISOForLabel(label: string, nowMs: number): string | null {
+  const match = label.match(/^([A-Za-z]{3}) ([A-Za-z]{3}) (\d{1,2})$/);
+  if (match === null) {
+    return null;
+  }
+
+  const weekday = match[1];
+  const monthName = match[2];
+  const day = Number(match[3]);
+  const month = monthNumber(monthName);
+  if (month === null || !Number.isInteger(day) || day < 1 || day > 31) {
+    return null;
+  }
+
+  const year = laParts(nowMs).year;
+  for (const candidateYear of [year, year + 1, year - 1]) {
+    const dateISO = toISO(candidateYear, month, day);
+    if (labelForISO(dateISO) === `${weekday} ${monthName} ${day}`) {
+      return dateISO;
+    }
+  }
+
+  return null;
+}
+
+export function parseWhen(
+  when: string,
+  nowMs: number = Date.now(),
+): { dateISO: string; timeKey: TimeKey } | null {
+  const match = when.match(WHEN_RE);
+  if (match === null) {
+    return null;
+  }
+
+  const timeKey = match[4];
+  if (!isTimeKey(timeKey)) {
+    return null;
+  }
+
+  const label = `${match[1]} ${match[2]} ${match[3]}`;
+  const fromUpcoming = upcomingDateOptions(nowMs).find(
+    (option) => option.label === label,
+  );
+  if (fromUpcoming !== undefined) {
+    return { dateISO: fromUpcoming.dateISO, timeKey };
+  }
+
+  const dateISO = dateISOForLabel(label, nowMs);
+  if (dateISO === null) {
+    return null;
+  }
+
+  return { dateISO, timeKey };
 }

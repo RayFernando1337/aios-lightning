@@ -12,19 +12,21 @@ export default function MoveSignupControl({
   submissionId,
   targets,
   defaultTarget,
+  requireChoice = false,
   primaryLabel = "Move",
   onMoved,
 }: {
   submissionId: Id<"submissions">;
   targets: { id: Id<"events">; label: string; href?: string }[];
   defaultTarget?: Id<"events">;
+  requireChoice?: boolean;
   primaryLabel?: string;
   onMoved?: (targetId: Id<"events">) => void;
 }) {
   const router = useRouter();
   const move = useMutation(api.submissions.move);
   const [targetId, setTargetId] = useState<string>(
-    defaultTarget ?? targets[0]?.id ?? "",
+    defaultTarget ?? (requireChoice ? "" : targets[0]?.id ?? ""),
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,12 +57,13 @@ export default function MoveSignupControl({
 
   return (
     <div className="space-y-3">
-      {targets.length > 1 && (
+      {(targets.length > 1 || requireChoice) && (
         <select
           className={input}
           value={targetId}
           onChange={(event) => setTargetId(event.target.value)}
         >
+          {requireChoice && <option value="">Another night</option>}
           {targets.map((night) => (
             <option key={night.id} value={night.id}>
               {night.label}
