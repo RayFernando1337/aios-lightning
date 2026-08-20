@@ -16,7 +16,7 @@ import {
   fieldLabel,
   input,
 } from "@/lib/styles";
-import { defaultWhen } from "@/lib/when";
+import { TimeKey, defaultDateISO, formatWhen } from "@/lib/when";
 
 export default function HostDesk() {
   return (
@@ -104,7 +104,8 @@ function Desk() {
 function CreateEventForm() {
   const create = useMutation(api.events.create);
   const [name, setName] = useState("");
-  const [when, setWhen] = useState(() => defaultWhen());
+  const [dateISO, setDateISO] = useState(() => defaultDateISO());
+  const [timeKey, setTimeKey] = useState<TimeKey>("6pm");
   const [where, setWhere] = useState("");
   const [room, setRoom] = useState("");
   const [capacity, setCapacity] = useState(String(DEFAULT_CAPACITY));
@@ -118,13 +119,14 @@ function CreateEventForm() {
     try {
       await create({
         name,
-        when,
+        when: formatWhen(dateISO, timeKey),
         where,
         room,
         capacity: Number(capacity),
       });
       setName("");
-      setWhen(defaultWhen());
+      setDateISO(defaultDateISO());
+      setTimeKey("6pm");
       setWhere("");
       setRoom("");
       setCapacity(String(DEFAULT_CAPACITY));
@@ -159,7 +161,14 @@ function CreateEventForm() {
         <p className={fieldLabel}>When</p>
         <p className={fieldHint}>San Francisco date and doors. No typing.</p>
         <div className="mt-2">
-          <WhenPicker value={when} onChange={setWhen} />
+          <WhenPicker
+            dateISO={dateISO}
+            timeKey={timeKey}
+            onChange={(nextDate, nextTime) => {
+              setDateISO(nextDate);
+              setTimeKey(nextTime);
+            }}
+          />
         </div>
       </div>
       <div>

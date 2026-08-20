@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { readableError } from "@/lib/errors";
 import { buttonSecondary, fieldHint, fieldLabel } from "@/lib/styles";
-import { parseWhen } from "@/lib/when";
+import { TimeKey, defaultDateISO, formatWhen } from "@/lib/when";
 
 export default function HostEventControls({
   eventId,
@@ -26,10 +26,10 @@ export default function HostEventControls({
   const update = useMutation(api.events.update);
   const setFeatured = useMutation(api.events.setFeatured);
   const [error, setError] = useState<string | null>(null);
-  const [editedWhen, setEditedWhen] = useState<string | null>(null);
+  const [dateISO, setDateISO] = useState(() => defaultDateISO());
+  const [timeKey, setTimeKey] = useState<TimeKey>("6pm");
   const [savingWhen, setSavingWhen] = useState(false);
-  const draftWhen = editedWhen ?? when;
-  const knownWhen = parseWhen(when) !== null;
+  const draftWhen = formatWhen(dateISO, timeKey);
 
   async function togglePhase() {
     setError(null);
@@ -57,7 +57,6 @@ export default function HostEventControls({
     setSavingWhen(true);
     try {
       await update({ eventId, when: draftWhen });
-      setEditedWhen(null);
     } catch (caught) {
       setError(readableError(caught));
     } finally {
@@ -72,12 +71,15 @@ export default function HostEventControls({
         <p className="font-mono text-[11px] tracking-[0.08em] text-cream/85">
           {when}
         </p>
-        <p className={fieldHint}>
-          {knownWhen
-            ? "San Francisco date and doors."
-            : "This marquee line is free text. Pick a date to replace it."}
-        </p>
-        <WhenPicker value={draftWhen} onChange={setEditedWhen} />
+        <p className={fieldHint}>San Francisco date and doors.</p>
+        <WhenPicker
+          dateISO={dateISO}
+          timeKey={timeKey}
+          onChange={(nextDate, nextTime) => {
+            setDateISO(nextDate);
+            setTimeKey(nextTime);
+          }}
+        />
         <button
           type="button"
           onClick={() => void saveWhen()}
