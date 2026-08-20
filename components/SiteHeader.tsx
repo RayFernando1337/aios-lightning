@@ -1,9 +1,15 @@
 "use client";
 
 import { SignInButton, UserButton } from "@clerk/nextjs";
-import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import {
+  Authenticated,
+  AuthLoading,
+  Unauthenticated,
+  useQuery,
+} from "convex/react";
 import Link from "next/link";
 import TicketMark from "@/components/TicketMark";
+import { api } from "@/convex/_generated/api";
 import {
   eventApplyPath,
   eventBoardPath,
@@ -12,7 +18,7 @@ import {
 } from "@/lib/paths";
 
 const navLink =
-  "font-mono text-[10px] font-bold tracking-[0.22em] text-paper/80 uppercase transition hover:text-paper";
+  "font-mono text-[10px] font-bold tracking-[0.22em] text-paper uppercase transition hover:text-admit";
 
 export default function SiteHeader({
   night,
@@ -21,6 +27,7 @@ export default function SiteHeader({
   night?: { slug: string | null; name?: string; house?: boolean };
   host?: boolean;
 }) {
+  const isHost = useQuery(api.hosts.amHost) === true;
   const slug = night?.slug ?? null;
   const house = night?.house ?? slug === null;
   const applyHref = slug === null ? "/apply" : eventApplyPath(slug);
@@ -48,23 +55,28 @@ export default function SiteHeader({
       </div>
 
       <nav className="glass-pill flex-wrap px-4 py-2 text-sm">
+        {isHost && (
+          <span className="bg-admit px-2 py-1 font-mono text-[9px] font-bold tracking-[0.22em] text-paper uppercase">
+            Host
+          </span>
+        )}
         <Link href="/" className={navLink}>
           Main night
         </Link>
-        {host && (
+        {isHost && (
           <Link href="/host" className={navLink}>
             Host desk
           </Link>
         )}
-        {host && slug !== null && (
-          <>
-            <Link href={publicHref} className={navLink}>
-              Public
-            </Link>
-            <Link href={hostEventPath(slug)} className={navLink}>
-              Triage
-            </Link>
-          </>
+        {isHost && host && slug !== null && (
+          <Link href={publicHref} className={navLink}>
+            Public
+          </Link>
+        )}
+        {isHost && slug !== null && (
+          <Link href={hostEventPath(slug)} className={navLink}>
+            Triage
+          </Link>
         )}
         <Link href={boardHref} className={navLink}>
           Board
