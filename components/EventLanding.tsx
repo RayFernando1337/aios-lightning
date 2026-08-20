@@ -31,12 +31,7 @@ export default function EventLanding({
   return (
     <>
       <FilmLeader alreadyPlayed={alreadyPlayed} />
-      <SiteHeader
-        boardHref={boardHref}
-        applyHref={applyHref}
-        eventName={event.name}
-        kind={house ? "house" : "room"}
-      />
+      <SiteHeader night={{ slug: house ? null : event.slug, name: event.name }} />
 
       <main>
         <section className="relative min-h-[100svh]">

@@ -4,30 +4,28 @@ import { SignInButton, UserButton } from "@clerk/nextjs";
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import Link from "next/link";
 import TicketMark from "@/components/TicketMark";
-import { eventPath, hostEventPath } from "@/lib/paths";
+import {
+  eventApplyPath,
+  eventBoardPath,
+  eventPath,
+  hostEventPath,
+} from "@/lib/paths";
 
 const navLink =
   "font-mono text-[10px] font-bold tracking-[0.22em] text-paper/80 uppercase transition hover:text-paper";
 
 export default function SiteHeader({
-  boardHref = "/board",
-  applyHref = "/apply",
-  eventName,
-  kind,
+  night,
   host = false,
-  eventSlug,
-  publicHref,
 }: {
-  boardHref?: string;
-  applyHref?: string;
-  eventName?: string;
-  kind?: "house" | "room";
+  night?: { slug: string | null; name?: string; house?: boolean };
   host?: boolean;
-  eventSlug?: string;
-  publicHref?: string;
 }) {
-  const kindLabel =
-    kind === "house" ? "main night" : kind === "room" ? "room" : null;
+  const slug = night?.slug ?? null;
+  const house = night?.house ?? slug === null;
+  const applyHref = slug === null ? "/apply" : eventApplyPath(slug);
+  const boardHref = slug === null ? "/board" : eventBoardPath(slug);
+  const publicHref = slug === null ? "/" : eventPath(slug);
 
   return (
     <header className="site-chrome fixed inset-x-0 top-0 z-40 flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
@@ -41,12 +39,10 @@ export default function SiteHeader({
             AiOS SF <span className="font-display tracking-tight">Lightning</span>
           </span>
         </Link>
-        {eventName !== undefined && (
+        {night?.name !== undefined && (
           <p className="hidden min-w-0 truncate font-mono text-[10px] font-bold tracking-[0.22em] text-admit uppercase sm:block">
-            {eventName}
-            {kindLabel !== null ? (
-              <span className="text-muted"> · {kindLabel}</span>
-            ) : null}
+            {night.name}
+            <span className="text-muted"> · {house ? "main night" : "room"}</span>
           </p>
         )}
       </div>
@@ -60,12 +56,12 @@ export default function SiteHeader({
             Host desk
           </Link>
         )}
-        {host && eventSlug !== undefined && (
+        {host && slug !== null && (
           <>
-            <Link href={publicHref ?? eventPath(eventSlug)} className={navLink}>
+            <Link href={publicHref} className={navLink}>
               Public
             </Link>
-            <Link href={hostEventPath(eventSlug)} className={navLink}>
+            <Link href={hostEventPath(slug)} className={navLink}>
               Triage
             </Link>
           </>

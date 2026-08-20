@@ -6,7 +6,6 @@ import EmptyEvent from "@/components/EmptyEvent";
 import MainNightLink from "@/components/MainNightLink";
 import SiteHeader from "@/components/SiteHeader";
 import { api } from "@/convex/_generated/api";
-import { eventApplyPath, eventBoardPath } from "@/lib/paths";
 import { eyebrow, pageMain } from "@/lib/styles";
 
 export default function BoardEventPage({ slug }: { slug?: string }) {
@@ -14,16 +13,11 @@ export default function BoardEventPage({ slug }: { slug?: string }) {
     api.events.bySlug,
     slug !== undefined ? { slug } : {},
   );
-  const applyHref =
-    slug !== undefined ? eventApplyPath(slug) : "/apply";
-  const boardHref =
-    slug !== undefined ? eventBoardPath(slug) : "/board";
-  const house = slug === undefined;
 
   if (event === undefined) {
     return (
       <>
-        <SiteHeader applyHref={applyHref} boardHref={boardHref} />
+        <SiteHeader night={{ slug: slug ?? null }} />
         <main className={`${pageMain} max-w-4xl`}>
           <p className="text-muted">Loading the lineup...</p>
         </main>
@@ -40,12 +34,7 @@ export default function BoardEventPage({ slug }: { slug?: string }) {
 
   return (
     <>
-      <SiteHeader
-        applyHref={applyHref}
-        boardHref={boardHref}
-        eventName={event.name}
-        kind={house ? "house" : "room"}
-      />
+      <SiteHeader night={{ slug: slug ?? null, name: event.name }} />
       <main className={`${pageMain} max-w-4xl`}>
         <MainNightLink />
         <p className={`${eyebrow} mt-4`}>{roomLine}</p>

@@ -18,12 +18,11 @@ export default function ApplyEventPage({ slug }: { slug?: string }) {
     slug !== undefined ? eventApplyPath(slug) : "/apply";
   const boardHref =
     slug !== undefined ? eventBoardPath(slug) : "/board";
-  const house = slug === undefined;
 
   if (event === undefined) {
     return (
       <>
-        <SiteHeader applyHref={applyHref} boardHref={boardHref} />
+        <SiteHeader night={{ slug: slug ?? null }} />
         <main className={pageMain}>
           <p className="text-muted">Loading the night...</p>
         </main>
@@ -40,12 +39,7 @@ export default function ApplyEventPage({ slug }: { slug?: string }) {
 
   return (
     <>
-      <SiteHeader
-        applyHref={applyHref}
-        boardHref={boardHref}
-        eventName={event.name}
-        kind={house ? "house" : "room"}
-      />
+      <SiteHeader night={{ slug: slug ?? null, name: event.name }} />
       <main className={pageMain}>
         <MainNightLink />
         <p className={`${eyebrow} mt-4`}>01 · {event.name}</p>

@@ -2,12 +2,13 @@
 
 import { Authenticated, AuthLoading, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import MoveSignupControl from "@/components/MoveSignupControl";
 import StatusChip from "@/components/StatusChip";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { readableError } from "@/lib/errors";
 import { STATUS_LABELS, STATUS_ORDER, SubmissionStatus } from "@/lib/status";
-import { buttonSecondary, card, fieldLabel, input } from "@/lib/styles";
+import { card, fieldLabel } from "@/lib/styles";
 
 const ACTION_ORDER: SubmissionStatus[] = [
   "submitted",
@@ -66,6 +67,27 @@ export function toTriageCard(submission: Doc<"submissions">): TriageCard {
 
 type Filter = SubmissionStatus | "all";
 
+/** Mirrors the server's move rule: selected re-enters as shortlisted, rejected as submitted. */
+function movedNoteFor(
+  title: string,
+  night: string,
+  status: SubmissionStatus,
+): string {
+  switch (status) {
+    case "selected":
+      return `Moved ${title} to ${night}. Now shortlisted there — pick them again if they should present.`;
+    case "rejected":
+      return `Moved ${title} to ${night}. Back in as a fresh submitted application.`;
+    case "submitted":
+    case "shortlisted":
+      return `Moved ${title} to ${night}.`;
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
+}
+
 export default function HostDashboard({
   eventId,
   capacity,
@@ -95,7 +117,6 @@ function Triage({
   const submissions = useQuery(api.submissions.listForHost, { eventId });
   const openNights = useQuery(api.events.listOpen);
   const setStatus = useMutation(api.submissions.setStatus);
-  const move = useMutation(api.submissions.move);
 
   const [filter, setFilter] = useState<Filter>("all");
   const [pendingId, setPendingId] = useState<Id<"submissions"> | null>(null);
@@ -133,33 +154,6 @@ function Triage({
     setFailure(null);
     try {
       await setStatus({ submissionId, status });
-    } catch (caught) {
-      setFailure({ id: submissionId, message: readableError(caught) });
-    } finally {
-      setPendingId(null);
-    }
-  }
-
-  async function moveSignup(
-    submissionId: Id<"submissions">,
-    toEventId: Id<"events">,
-    title: string,
-    status: SubmissionStatus,
-  ) {
-    const target = moveTargets.find((night) => night._id === toEventId);
-    setPendingId(submissionId);
-    setFailure(null);
-    try {
-      await move({ submissionId, toEventId });
-      const demoted =
-        status === "selected" &&
-        target !== undefined &&
-        target.selectedCount >= target.capacity;
-      setMovedNote(
-        demoted
-          ? `Moved ${title} to ${target.name}. Now shortlisted. That night is full.`
-          : `Moved ${title}${target !== undefined ? ` to ${target.name}` : ""}.`,
-      );
     } catch (caught) {
       setFailure({ id: submissionId, message: readableError(caught) });
     } finally {
@@ -224,19 +218,24 @@ function Triage({
                   failure?.id === triageCard.id ? failure.message : null
                 }
                 onChange={(status) => changeStatus(triageCard.id, status)}
-                moveTargets={moveTargets.map((night) => ({
-                  id: night._id,
-                  name: night.name,
-                  when: night.when,
-                }))}
-                onMove={(toEventId) =>
-                  void moveSignup(
-                    triageCard.id,
-                    toEventId,
-                    triageCard.title,
-                    triageCard.status,
-                  )
-                }
+                move={{
+                  targets: moveTargets.map((night) => ({
+                    id: night._id,
+                    label: `${night.name} · ${night.when}`,
+                  })),
+                  onMoved: (targetId) => {
+                    const target = moveTargets.find(
+                      (night) => night._id === targetId,
+                    );
+                    setMovedNote(
+                      movedNoteFor(
+                        triageCard.title,
+                        target?.name ?? "another night",
+                        triageCard.status,
+                      ),
+                    );
+                  },
+                }}
               />
             </li>
           ))}
@@ -251,18 +250,18 @@ export function SubmissionRow({
   pending,
   failure,
   onChange,
-  moveTargets,
-  onMove,
+  move,
 }: {
   card: TriageCard;
   pending: boolean;
   failure: string | null;
   onChange: (status: SubmissionStatus) => void;
-  moveTargets?: { id: Id<"events">; name: string; when: string }[];
-  onMove?: (toEventId: Id<"events">) => void;
+  move?: {
+    targets: { id: Id<"events">; label: string }[];
+    onMoved: (targetId: Id<"events">) => void;
+  };
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [moveTo, setMoveTo] = useState("");
 
   return (
     <div>
@@ -343,39 +342,14 @@ export function SubmissionRow({
         })}
       </div>
 
-      {moveTargets !== undefined && moveTargets.length > 0 && onMove !== undefined && (
+      {move !== undefined && move.targets.length > 0 && (
         <div className="mt-4 space-y-2 border-t border-line pt-4">
           <p className={fieldLabel}>Move to…</p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <select
-              className={input}
-              value={moveTo}
-              disabled={pending}
-              onChange={(event) => setMoveTo(event.target.value)}
-            >
-              <option value="">Another night</option>
-              {moveTargets.map((night) => (
-                <option key={night.id} value={night.id}>
-                  {night.name} · {night.when}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className={buttonSecondary}
-              disabled={pending || moveTo === ""}
-              onClick={() => {
-                const target = moveTargets.find((night) => night.id === moveTo);
-                if (target === undefined) {
-                  return;
-                }
-                onMove(target.id);
-                setMoveTo("");
-              }}
-            >
-              Move
-            </button>
-          </div>
+          <MoveSignupControl
+            submissionId={card.id}
+            targets={move.targets}
+            onMoved={move.onMoved}
+          />
         </div>
       )}
 

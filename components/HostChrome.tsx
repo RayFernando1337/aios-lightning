@@ -4,7 +4,6 @@ import { useQuery } from "convex/react";
 import { ReactNode } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import { api } from "@/convex/_generated/api";
-import { eventApplyPath, eventBoardPath, eventPath } from "@/lib/paths";
 
 export default function HostChrome({
   slug,
@@ -25,16 +24,16 @@ export default function HostChrome({
 
   return (
     <>
+      {/* The name (and its house/room tag) waits for the featured query so the
+          eyebrow never flickers between labels; hrefs use the route slug so
+          they are room-scoped from the first paint. */}
       <SiteHeader
         host
-        eventName={loaded ? event.name : undefined}
-        kind={
-          loaded && featuredReady ? (house ? "house" : "room") : undefined
+        night={
+          loaded && featuredReady
+            ? { slug: event.slug, name: event.name, house }
+            : { slug }
         }
-        eventSlug={loaded ? event.slug : undefined}
-        applyHref={loaded ? eventApplyPath(event.slug) : "/apply"}
-        boardHref={loaded ? eventBoardPath(event.slug) : "/board"}
-        publicHref={loaded ? eventPath(event.slug) : undefined}
       />
       {children}
     </>
