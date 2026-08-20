@@ -21,7 +21,7 @@ export default function WhenPicker({
 }) {
   const options = useMemo(() => {
     const upcoming = upcomingDateOptions();
-    if (upcoming.some((option) => option.dateISO === dateISO)) {
+    if (dateISO === "" || upcoming.some((option) => option.dateISO === dateISO)) {
       return upcoming;
     }
     return [
@@ -42,6 +42,11 @@ export default function WhenPicker({
           value={dateISO}
           onChange={(event) => onChange(event.target.value, timeKey)}
         >
+          {dateISO === "" && (
+            <option value="" disabled>
+              Pick a date
+            </option>
+          )}
           {options.map((option) => (
             <option key={option.dateISO} value={option.dateISO}>
               {option.label}

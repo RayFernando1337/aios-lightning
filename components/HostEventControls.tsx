@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { readableError } from "@/lib/errors";
 import { buttonSecondary, fieldHint, fieldLabel } from "@/lib/styles";
-import { TimeKey, defaultDateISO, formatWhen, parseWhen } from "@/lib/when";
+import { TimeKey, formatWhen, parseWhen } from "@/lib/when";
 
 export default function HostEventControls({
   eventId,
@@ -27,9 +27,7 @@ export default function HostEventControls({
   const setFeatured = useMutation(api.events.setFeatured);
   const parsed = parseWhen(when);
   const [error, setError] = useState<string | null>(null);
-  const [dateISO, setDateISO] = useState(
-    () => parsed?.dateISO ?? defaultDateISO(),
-  );
+  const [dateISO, setDateISO] = useState(() => parsed?.dateISO ?? "");
   const [timeKey, setTimeKey] = useState<TimeKey>(
     () => parsed?.timeKey ?? "6pm",
   );
