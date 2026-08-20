@@ -35,7 +35,8 @@ const MONTHS = [
 ] as const;
 
 const UPCOMING_DAYS = 16;
-const WHEN_RE = /^([A-Za-z]{3}) ([A-Za-z]{3}) (\d{1,2}) · doors (.+)$/;
+const WHEN_RE =
+  /(?:^|,\s+)([A-Za-z]{3}) ([A-Za-z]{3}) (\d{1,2})(?: · doors (.+))?$/;
 
 function part(
   parts: Intl.DateTimeFormatPart[],
@@ -167,6 +168,16 @@ function dateISOForLabel(label: string, nowMs: number): string | null {
   return null;
 }
 
+function dateISOFromLabel(label: string, nowMs: number): string | null {
+  const fromUpcoming = upcomingDateOptions(nowMs).find(
+    (option) => option.label === label,
+  );
+  if (fromUpcoming !== undefined) {
+    return fromUpcoming.dateISO;
+  }
+  return dateISOForLabel(label, nowMs);
+}
+
 export function parseWhen(
   when: string,
   nowMs: number = Date.now(),
@@ -176,20 +187,15 @@ export function parseWhen(
     return null;
   }
 
-  const timeKey = match[4];
+  const timeKey = match[4] ?? "6pm";
   if (!isTimeKey(timeKey)) {
     return null;
   }
 
-  const label = `${match[1]} ${match[2]} ${match[3]}`;
-  const fromUpcoming = upcomingDateOptions(nowMs).find(
-    (option) => option.label === label,
+  const dateISO = dateISOFromLabel(
+    `${match[1]} ${match[2]} ${match[3]}`,
+    nowMs,
   );
-  if (fromUpcoming !== undefined) {
-    return { dateISO: fromUpcoming.dateISO, timeKey };
-  }
-
-  const dateISO = dateISOForLabel(label, nowMs);
   if (dateISO === null) {
     return null;
   }

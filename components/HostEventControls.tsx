@@ -25,16 +25,19 @@ export default function HostEventControls({
 }) {
   const update = useMutation(api.events.update);
   const setFeatured = useMutation(api.events.setFeatured);
+  const parsed = parseWhen(when);
   const [error, setError] = useState<string | null>(null);
   const [dateISO, setDateISO] = useState(
-    () => parseWhen(when)?.dateISO ?? defaultDateISO(),
+    () => parsed?.dateISO ?? defaultDateISO(),
   );
   const [timeKey, setTimeKey] = useState<TimeKey>(
-    () => parseWhen(when)?.timeKey ?? "6pm",
+    () => parsed?.timeKey ?? "6pm",
   );
   const [touched, setTouched] = useState(false);
+  const [dateChosen, setDateChosen] = useState(() => parsed !== null);
   const [savingWhen, setSavingWhen] = useState(false);
-  const draftWhen = touched ? formatWhen(dateISO, timeKey) : when;
+  const draftWhen =
+    touched && dateChosen ? formatWhen(dateISO, timeKey) : when;
 
   async function togglePhase() {
     setError(null);
@@ -76,12 +79,19 @@ export default function HostEventControls({
         <p className="font-mono text-[11px] tracking-[0.08em] text-cream/85">
           {when}
         </p>
-        <p className={fieldHint}>San Francisco date and doors.</p>
+        <p className={fieldHint}>
+          {dateChosen
+            ? "San Francisco date and doors."
+            : "This marquee line is free text. Pick a date to replace it."}
+        </p>
         <WhenPicker
           dateISO={dateISO}
           timeKey={timeKey}
           onChange={(nextDate, nextTime) => {
             setTouched(true);
+            if (nextDate !== dateISO) {
+              setDateChosen(true);
+            }
             setDateISO(nextDate);
             setTimeKey(nextTime);
           }}
