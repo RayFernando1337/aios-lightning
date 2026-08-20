@@ -30,6 +30,7 @@ export default function WhenPicker({
 }) {
   const [open, setOpen] = useState(false);
   const selected = dateISO === "" ? undefined : dateFromISO(dateISO);
+  const laToday = dateFromISO(todayISO());
 
   return (
     <div className="grid gap-2 sm:grid-cols-2">
@@ -49,8 +50,9 @@ export default function WhenPicker({
           <Calendar
             mode="single"
             selected={selected}
-            defaultMonth={selected}
-            disabled={{ before: dateFromISO(todayISO()) }}
+            today={laToday}
+            defaultMonth={selected ?? laToday}
+            disabled={{ before: laToday }}
             onSelect={(date) => {
               if (date !== undefined) {
                 onChange(isoFromDate(date), timeKey);
