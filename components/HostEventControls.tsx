@@ -7,7 +7,7 @@ import WhenPicker from "@/components/WhenPicker";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { readableError } from "@/lib/errors";
-import { buttonSecondary, card, fieldHint, fieldLabel } from "@/lib/styles";
+import { buttonSecondary, card, fieldHint, fieldLabel, input } from "@/lib/styles";
 import { DEFAULT_DOORS, formatWhen, parseWhen } from "@/lib/when";
 
 export default function HostEventControls({
@@ -16,12 +16,14 @@ export default function HostEventControls({
   phase,
   featured,
   when,
+  capacity,
 }: {
   eventId: Id<"events">;
   slug: string;
   phase: "open" | "closed";
   featured: boolean;
   when: string;
+  capacity: number;
 }) {
   const update = useMutation(api.events.update);
   const setFeatured = useMutation(api.events.setFeatured);
@@ -34,6 +36,17 @@ export default function HostEventControls({
   const [savingWhen, setSavingWhen] = useState(false);
   const draftWhen =
     touched && dateChosen ? formatWhen(dateISO, time) : when;
+  const [savingSlots, setSavingSlots] = useState(false);
+  const [slots, setSlots] = useState(String(capacity));
+  const [seenCapacity, setSeenCapacity] = useState(capacity);
+  if (capacity !== seenCapacity) {
+    setSeenCapacity(capacity);
+    setSlots(String(capacity));
+  }
+  const slotsSavable =
+    slots.trim() !== "" &&
+    Number.isInteger(Number(slots)) &&
+    Number(slots) !== capacity;
 
   async function togglePhase() {
     setError(null);
@@ -68,6 +81,18 @@ export default function HostEventControls({
     }
   }
 
+  async function saveSlots() {
+    setError(null);
+    setSavingSlots(true);
+    try {
+      await update({ eventId, capacity: Number(slots) });
+    } catch (caught) {
+      setError(readableError(caught));
+    } finally {
+      setSavingSlots(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -99,6 +124,31 @@ export default function HostEventControls({
           disabled={savingWhen || draftWhen === when}
         >
           {savingWhen ? "Saving..." : "Save when"}
+        </button>
+      </div>
+      <div className="space-y-2">
+        <label htmlFor="event-slots" className={fieldLabel}>
+          Slots
+        </label>
+        <p className={fieldHint}>
+          Raise any time. Lowering stops at the talks already selected.
+        </p>
+        <input
+          id="event-slots"
+          className={input}
+          type="number"
+          min={1}
+          max={30}
+          value={slots}
+          onChange={(event) => setSlots(event.target.value)}
+        />
+        <button
+          type="button"
+          onClick={() => void saveSlots()}
+          className={buttonSecondary}
+          disabled={savingSlots || !slotsSavable}
+        >
+          {savingSlots ? "Saving..." : "Save slots"}
         </button>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
