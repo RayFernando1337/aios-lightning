@@ -2,13 +2,13 @@
 
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import RouteCodes from "@/components/RouteCodes";
+import ShareNight from "@/components/ShareNight";
 import WhenPicker from "@/components/WhenPicker";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { readableError } from "@/lib/errors";
-import { buttonSecondary, fieldHint, fieldLabel } from "@/lib/styles";
-import { TimeKey, formatWhen, parseWhen } from "@/lib/when";
+import { buttonSecondary, card, fieldHint, fieldLabel } from "@/lib/styles";
+import { DEFAULT_DOORS, formatWhen, parseWhen } from "@/lib/when";
 
 export default function HostEventControls({
   eventId,
@@ -28,14 +28,12 @@ export default function HostEventControls({
   const parsed = parseWhen(when);
   const [error, setError] = useState<string | null>(null);
   const [dateISO, setDateISO] = useState(() => parsed?.dateISO ?? "");
-  const [timeKey, setTimeKey] = useState<TimeKey>(
-    () => parsed?.timeKey ?? "6pm",
-  );
+  const [time, setTime] = useState(() => parsed?.time ?? DEFAULT_DOORS);
   const [touched, setTouched] = useState(false);
   const [dateChosen, setDateChosen] = useState(() => parsed !== null);
   const [savingWhen, setSavingWhen] = useState(false);
   const draftWhen =
-    touched && dateChosen ? formatWhen(dateISO, timeKey) : when;
+    touched && dateChosen ? formatWhen(dateISO, time) : when;
 
   async function togglePhase() {
     setError(null);
@@ -84,14 +82,14 @@ export default function HostEventControls({
         </p>
         <WhenPicker
           dateISO={dateISO}
-          timeKey={timeKey}
+          time={time}
           onChange={(nextDate, nextTime) => {
             setTouched(true);
             if (nextDate !== dateISO) {
               setDateChosen(true);
             }
             setDateISO(nextDate);
-            setTimeKey(nextTime);
+            setTime(nextTime);
           }}
         />
         <button
@@ -113,7 +111,9 @@ export default function HostEventControls({
           </button>
         )}
       </div>
-      <RouteCodes slug={slug} featured={featured} />
+      <div className={card}>
+        <ShareNight slug={slug} featured={featured} />
+      </div>
       {error !== null && (
         <p className="border border-admit/40 bg-admit/10 px-4 py-3 text-sm text-paper">
           {error}

@@ -3,7 +3,7 @@
 import { Authenticated, AuthLoading, useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import RouteCodes from "@/components/RouteCodes";
+import ShareNight from "@/components/ShareNight";
 import WhenPicker from "@/components/WhenPicker";
 import { api } from "@/convex/_generated/api";
 import { DEFAULT_CAPACITY, EVENT_FIELD_LIMITS } from "@/convex/lib/limits";
@@ -16,7 +16,7 @@ import {
   fieldLabel,
   input,
 } from "@/lib/styles";
-import { TimeKey, formatWhen } from "@/lib/when";
+import { DEFAULT_DOORS, formatWhen } from "@/lib/when";
 
 export default function HostDesk() {
   return (
@@ -85,11 +85,7 @@ function Desk() {
                 </Link>
               </div>
               <div className="mt-4">
-                <RouteCodes
-                  slug={row.event.slug}
-                  featured={row.featured}
-                  bare
-                />
+                <ShareNight slug={row.event.slug} featured={row.featured} />
               </div>
             </li>
           ))}
@@ -105,7 +101,7 @@ function CreateEventForm() {
   const create = useMutation(api.events.create);
   const [name, setName] = useState("");
   const [dateISO, setDateISO] = useState("");
-  const [timeKey, setTimeKey] = useState<TimeKey>("6pm");
+  const [time, setTime] = useState(DEFAULT_DOORS);
   const [where, setWhere] = useState("");
   const [room, setRoom] = useState("");
   const [capacity, setCapacity] = useState(String(DEFAULT_CAPACITY));
@@ -122,14 +118,14 @@ function CreateEventForm() {
     try {
       await create({
         name,
-        when: formatWhen(dateISO, timeKey),
+        when: formatWhen(dateISO, time),
         where,
         room,
         capacity: Number(capacity),
       });
       setName("");
       setDateISO("");
-      setTimeKey("6pm");
+      setTime(DEFAULT_DOORS);
       setWhere("");
       setRoom("");
       setCapacity(String(DEFAULT_CAPACITY));
@@ -166,10 +162,10 @@ function CreateEventForm() {
         <div className="mt-2">
           <WhenPicker
             dateISO={dateISO}
-            timeKey={timeKey}
+            time={time}
             onChange={(nextDate, nextTime) => {
               setDateISO(nextDate);
-              setTimeKey(nextTime);
+              setTime(nextTime);
             }}
           />
         </div>

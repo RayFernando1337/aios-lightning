@@ -9,24 +9,16 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { input } from "@/lib/styles";
-import {
-  TIME_OPTIONS,
-  TimeKey,
-  dateFromISO,
-  isTimeKey,
-  isoFromDate,
-  labelForISO,
-  todayISO,
-} from "@/lib/when";
+import { dateFromISO, isoFromDate, labelForISO, todayISO } from "@/lib/when";
 
 export default function WhenPicker({
   dateISO,
-  timeKey,
+  time,
   onChange,
 }: {
   dateISO: string;
-  timeKey: TimeKey;
-  onChange: (dateISO: string, timeKey: TimeKey) => void;
+  time: string;
+  onChange: (dateISO: string, time: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const selected = dateISO === "" ? undefined : dateFromISO(dateISO);
@@ -55,7 +47,7 @@ export default function WhenPicker({
             disabled={{ before: laToday }}
             onSelect={(date) => {
               if (date !== undefined) {
-                onChange(isoFromDate(date), timeKey);
+                onChange(isoFromDate(date), time);
                 setOpen(false);
               }
             }}
@@ -65,22 +57,18 @@ export default function WhenPicker({
       </Popover>
       <label className="min-w-0">
         <span className="sr-only">Doors</span>
-        <select
-          className={input}
-          value={timeKey}
+        <input
+          type="time"
+          step={300}
+          className={`${input} appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none`}
+          value={time}
           onChange={(event) => {
             const next = event.target.value;
-            if (isTimeKey(next)) {
+            if (next !== "") {
               onChange(dateISO, next);
             }
           }}
-        >
-          {TIME_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              doors {option}
-            </option>
-          ))}
-        </select>
+        />
       </label>
     </div>
   );

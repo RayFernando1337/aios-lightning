@@ -1,19 +1,6 @@
 const TIME_ZONE = "America/Los_Angeles";
 
-export const TIME_OPTIONS = [
-  "5pm",
-  "5:30pm",
-  "6pm",
-  "6:30pm",
-  "7pm",
-  "7:30pm",
-  "8pm",
-  "8:30pm",
-  "9pm",
-  "9:30pm",
-] as const;
-
-export type TimeKey = (typeof TIME_OPTIONS)[number];
+export const DEFAULT_DOORS = "18:00";
 
 const MONTHS = [
   "Jan",
@@ -31,7 +18,7 @@ const MONTHS = [
 ] as const;
 
 const WHEN_RE =
-  /(?:^|,\s+)([A-Za-z]{3}) ([A-Za-z]{3}) (\d{1,2})(?: · doors (.+))?$/;
+  /(?:^|,\s+)([A-Za-z]{3}) ([A-Za-z]{3}) (\d{1,2})(?: · doors (\d{1,2})(?::(\d{2}))?(am|pm))?$/;
 
 function part(
   parts: Intl.DateTimeFormatPart[],
@@ -99,12 +86,17 @@ export function todayISO(nowMs: number = Date.now()): string {
   return toISO(now.year, now.month, now.day);
 }
 
-export function isTimeKey(value: string): value is TimeKey {
-  return (TIME_OPTIONS as readonly string[]).includes(value);
+export function formatDoors(timeHHMM: string): string {
+  const [hour, minutes] = timeHHMM.split(":").map(Number);
+  const period = hour < 12 ? "am" : "pm";
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return minutes === 0
+    ? `${hour12}${period}`
+    : `${hour12}:${String(minutes).padStart(2, "0")}${period}`;
 }
 
-export function formatWhen(dateISO: string, timeKey: string): string {
-  return `${labelForISO(dateISO)} · doors ${timeKey}`;
+export function formatWhen(dateISO: string, timeHHMM: string): string {
+  return `${labelForISO(dateISO)} · doors ${formatDoors(timeHHMM)}`;
 }
 
 function monthNumber(month: string): number | null {
@@ -137,17 +129,37 @@ function dateISOForLabel(label: string, nowMs: number): string | null {
   return null;
 }
 
+function timeFromDoors(
+  hourText: string | undefined,
+  minuteText: string | undefined,
+  period: string | undefined,
+): string | null {
+  if (hourText === undefined || period === undefined) {
+    return DEFAULT_DOORS;
+  }
+
+  const hour = Number(hourText);
+  const minutes = minuteText === undefined ? 0 : Number(minuteText);
+  if (hour < 1 || hour > 12 || minutes > 59) {
+    return null;
+  }
+
+  const hour24 =
+    period === "am" ? hour % 12 : hour % 12 === 0 ? 12 : hour + 12;
+  return `${String(hour24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
 export function parseWhen(
   when: string,
   nowMs: number = Date.now(),
-): { dateISO: string; timeKey: TimeKey } | null {
+): { dateISO: string; time: string } | null {
   const match = when.match(WHEN_RE);
   if (match === null) {
     return null;
   }
 
-  const timeKey = match[4] ?? "6pm";
-  if (!isTimeKey(timeKey)) {
+  const time = timeFromDoors(match[4], match[5], match[6]);
+  if (time === null) {
     return null;
   }
 
@@ -159,5 +171,5 @@ export function parseWhen(
     return null;
   }
 
-  return { dateISO, timeKey };
+  return { dateISO, time };
 }
