@@ -22,6 +22,7 @@ export const config = {
     // keeping `/` and `/board` off this list means the landing page and the
     // projector board still render if Clerk is slow or unreachable.
     "/apply(.*)",
+    "/e/(.*)/apply(.*)",
     "/host(.*)",
     "/(api|trpc)(.*)",
     // Always run for Clerk's frontend API routes

@@ -2,13 +2,13 @@
 
 import { Authenticated, AuthLoading, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import MoveSignupControl from "@/components/MoveSignupControl";
 import StatusChip from "@/components/StatusChip";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
-import { MAX_SELECTED } from "@/convex/lib/limits";
 import { readableError } from "@/lib/errors";
 import { STATUS_LABELS, STATUS_ORDER, SubmissionStatus } from "@/lib/status";
-import { card } from "@/lib/styles";
+import { card, fieldLabel } from "@/lib/styles";
 
 const ACTION_ORDER: SubmissionStatus[] = [
   "submitted",
@@ -67,21 +67,55 @@ export function toTriageCard(submission: Doc<"submissions">): TriageCard {
 
 type Filter = SubmissionStatus | "all";
 
-export default function HostDashboard() {
+/** Mirrors the server's move rule: selected re-enters as shortlisted, rejected as submitted. */
+function movedNoteFor(
+  title: string,
+  night: string,
+  status: SubmissionStatus,
+): string {
+  switch (status) {
+    case "selected":
+      return `Moved ${title} to ${night}. Now shortlisted there — pick them again if they should present.`;
+    case "rejected":
+      return `Moved ${title} to ${night}. Back in as a fresh submitted application.`;
+    case "submitted":
+    case "shortlisted":
+      return `Moved ${title} to ${night}.`;
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
+}
+
+export default function HostDashboard({
+  eventId,
+  capacity,
+}: {
+  eventId: Id<"events">;
+  capacity: number;
+}) {
   return (
     <>
       <AuthLoading>
         <p className="text-muted">Checking your session...</p>
       </AuthLoading>
       <Authenticated>
-        <Triage />
+        <Triage eventId={eventId} capacity={capacity} />
       </Authenticated>
     </>
   );
 }
 
-function Triage() {
-  const submissions = useQuery(api.submissions.listForHost);
+function Triage({
+  eventId,
+  capacity,
+}: {
+  eventId: Id<"events">;
+  capacity: number;
+}) {
+  const submissions = useQuery(api.submissions.listForHost, { eventId });
+  const openNights = useQuery(api.events.listOpen);
   const setStatus = useMutation(api.submissions.setStatus);
 
   const [filter, setFilter] = useState<Filter>("all");
@@ -92,6 +126,7 @@ function Triage() {
     id: Id<"submissions">;
     message: string;
   } | null>(null);
+  const [movedNote, setMovedNote] = useState<string | null>(null);
 
   if (submissions === undefined) {
     return <p className="text-muted">Loading submissions...</p>;
@@ -109,6 +144,7 @@ function Triage() {
       ? sorted
       : sorted.filter((submission) => submission.status === filter);
   const cards = visible.map(toTriageCard);
+  const moveTargets = (openNights ?? []).filter((night) => night._id !== eventId);
 
   async function changeStatus(
     submissionId: Id<"submissions">,
@@ -132,12 +168,12 @@ function Triage() {
           <p className="text-sm text-muted">
             <span
               className={
-                selectedCount >= MAX_SELECTED
+                selectedCount >= capacity
                   ? "font-bold text-admit"
                   : "font-bold text-paper"
               }
             >
-              {selectedCount} of {MAX_SELECTED}
+              {selectedCount} of {capacity}
             </span>{" "}
             slots picked
           </p>
@@ -163,6 +199,12 @@ function Triage() {
         </div>
       </div>
 
+      {movedNote !== null && (
+        <p className="border border-admit/40 bg-admit/10 px-4 py-3 text-sm text-paper">
+          {movedNote}
+        </p>
+      )}
+
       {cards.length === 0 ? (
         <p className={`${card} text-muted`}>Nothing here yet.</p>
       ) : (
@@ -176,6 +218,24 @@ function Triage() {
                   failure?.id === triageCard.id ? failure.message : null
                 }
                 onChange={(status) => changeStatus(triageCard.id, status)}
+                move={{
+                  targets: moveTargets.map((night) => ({
+                    id: night._id,
+                    label: `${night.name} · ${night.when}`,
+                  })),
+                  onMoved: (targetId) => {
+                    const target = moveTargets.find(
+                      (night) => night._id === targetId,
+                    );
+                    setMovedNote(
+                      movedNoteFor(
+                        triageCard.title,
+                        target?.name ?? "another night",
+                        triageCard.status,
+                      ),
+                    );
+                  },
+                }}
               />
             </li>
           ))}
@@ -190,11 +250,16 @@ export function SubmissionRow({
   pending,
   failure,
   onChange,
+  move,
 }: {
   card: TriageCard;
   pending: boolean;
   failure: string | null;
   onChange: (status: SubmissionStatus) => void;
+  move?: {
+    targets: { id: Id<"events">; label: string }[];
+    onMoved: (targetId: Id<"events">) => void;
+  };
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -276,6 +341,18 @@ export function SubmissionRow({
           );
         })}
       </div>
+
+      {move !== undefined && move.targets.length > 0 && (
+        <div className="mt-4 space-y-2 border-t border-line pt-4">
+          <p className={fieldLabel}>Move to…</p>
+          <MoveSignupControl
+            submissionId={card.id}
+            targets={move.targets}
+            requireChoice
+            onMoved={move.onMoved}
+          />
+        </div>
+      )}
 
       {failure !== null && (
         <p className="mt-3 border border-admit/40 bg-admit/10 px-4 py-3 text-sm text-paper">

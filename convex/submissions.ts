@@ -1,7 +1,8 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError, Infer, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireHost, requireIdentity } from "./lib/auth";
-import { FIELD_LIMITS, MAX_SELECTED } from "./lib/limits";
+import { identityIsHost, requireHost, requireIdentity } from "./lib/auth";
+import { requireEvent, resolveEvent } from "./lib/eventLookup";
+import { FIELD_LIMITS } from "./lib/limits";
 import { requireText } from "./lib/text";
 import { statusValidator, submissionFields } from "./schema";
 
@@ -11,8 +12,6 @@ const submissionDoc = v.object({
   ...submissionFields,
 });
 
-// The public board contract. Only fields listed here leave the deployment,
-// so email, userId, and host-only state stay off the wire by construction.
 const boardEntry = v.object({
   _id: v.id("submissions"),
   displayName: v.string(),
@@ -21,29 +20,90 @@ const boardEntry = v.object({
   takeaway: v.string(),
 });
 
-/** The signed in applicant's own submission, or null before they apply. */
-export const mySubmission = query({
-  args: {},
+const mineAllEntry = v.object({
+  _id: v.id("submissions"),
+  eventId: v.id("events"),
+  eventName: v.string(),
+  eventSlug: v.string(),
+  eventWhen: v.string(),
+  eventRoom: v.string(),
+  status: statusValidator,
+  title: v.string(),
+});
+
+/** The signed-in applicant's submission for one event, or null. */
+export const mine = query({
+  args: { slug: v.optional(v.string()) },
   returns: v.union(submissionDoc, v.null()),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) {
       return null;
     }
 
-    return await ctx.db
+    const event = await resolveEvent(ctx, args.slug);
+    if (event === null) {
+      return null;
+    }
+
+    return (
+      (await ctx.db
+        .query("submissions")
+        .withIndex("by_event_user", (q) =>
+          q.eq("eventId", event._id).eq("userId", identity.subject),
+        )
+        .first()) ?? null
+    );
+  },
+});
+
+/** Every signup belonging to the signed-in applicant, across nights. */
+export const mineAll = query({
+  args: {},
+  returns: v.array(mineAllEntry),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      return [];
+    }
+
+    const rows = await ctx.db
       .query("submissions")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .unique();
+      .collect();
+
+    const result = [];
+    for (const row of rows) {
+      if (row.eventId === undefined) {
+        continue;
+      }
+      const event = await ctx.db.get("events", row.eventId);
+      if (event === null) {
+        continue;
+      }
+      result.push({
+        _id: row._id,
+        eventId: event._id,
+        eventName: event.name,
+        eventSlug: event.slug,
+        eventWhen: event.when,
+        eventRoom: event.room,
+        status: row.status,
+        title: row.demoTitle,
+      });
+    }
+
+    return result;
   },
 });
 
 /**
- * Create the applicant's submission, or edit it in place if they already have one.
- * One row per user, always.
+ * Create the applicant's submission for this event, or edit it in place.
+ * One row per user per event.
  */
 export const submit = mutation({
   args: {
+    slug: v.optional(v.string()),
     displayName: v.string(),
     demoTitle: v.string(),
     whatYoullShowLive: v.string(),
@@ -55,9 +115,24 @@ export const submit = mutation({
   returns: v.id("submissions"),
   handler: async (ctx, args) => {
     const identity = await requireIdentity(ctx);
+    const event = await resolveEvent(ctx, args.slug);
+    if (event === null) {
+      throw new ConvexError("Event not found.");
+    }
 
     if (!args.noSlides || !args.noPitch || !args.readyIn60s) {
       throw new ConvexError("Check all three boxes to apply.");
+    }
+
+    const existing = await ctx.db
+      .query("submissions")
+      .withIndex("by_event_user", (q) =>
+        q.eq("eventId", event._id).eq("userId", identity.subject),
+      )
+      .first();
+
+    if (existing === null && event.phase === "closed") {
+      throw new ConvexError("Applications are closed for this event.");
     }
 
     const content = {
@@ -83,13 +158,8 @@ export const submit = mutation({
       updatedAt: Date.now(),
     };
 
-    const existing = await ctx.db
-      .query("submissions")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .unique();
-
     if (existing !== null) {
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("submissions", existing._id, {
         ...content,
         email: identity.email ?? existing.email,
       });
@@ -98,6 +168,7 @@ export const submit = mutation({
 
     return await ctx.db.insert("submissions", {
       ...content,
+      eventId: event._id,
       userId: identity.subject,
       email: identity.email ?? "",
       status: "submitted",
@@ -106,13 +177,84 @@ export const submit = mutation({
   },
 });
 
-/** Every submission, newest first. Hosts only. */
+type Status = Infer<typeof statusValidator>;
+
+// Selection is a per-night host decision, so a signup that moves re-enters
+// the target night's funnel instead of carrying its verdict along.
+const STATUS_AFTER_MOVE: Record<Status, Status> = {
+  submitted: "submitted",
+  shortlisted: "shortlisted",
+  selected: "shortlisted",
+  rejected: "submitted",
+};
+
+/** Move a signup onto another open night. Applicant or host. */
+export const move = mutation({
+  args: {
+    submissionId: v.id("submissions"),
+    toEventId: v.id("events"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const submission = await ctx.db.get("submissions", args.submissionId);
+    if (submission === null) {
+      throw new ConvexError("Signup not found.");
+    }
+
+    const identity = await requireIdentity(ctx);
+    const host = identityIsHost(identity);
+    if (!host && submission.userId !== identity.subject) {
+      throw new ConvexError("You can only move your own signup.");
+    }
+
+    const target = await ctx.db.get("events", args.toEventId);
+    if (target === null) {
+      throw new ConvexError("Event not found.");
+    }
+    if (target.phase !== "open") {
+      throw new ConvexError("That night is not open.");
+    }
+
+    if (submission.eventId === args.toEventId) {
+      return null;
+    }
+
+    const collision = await ctx.db
+      .query("submissions")
+      .withIndex("by_event_user", (q) =>
+        q.eq("eventId", args.toEventId).eq("userId", submission.userId),
+      )
+      .first();
+    if (collision !== null && collision._id !== submission._id) {
+      throw new ConvexError(
+        "Already signed up for that night. Remove or keep the existing one.",
+      );
+    }
+
+    await ctx.db.patch("submissions", submission._id, {
+      eventId: args.toEventId,
+      status: STATUS_AFTER_MOVE[submission.status],
+      selectedAt: undefined,
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+/** Every submission for one event, newest first. Hosts only. */
 export const listForHost = query({
-  args: {},
+  args: { eventId: v.id("events") },
   returns: v.array(submissionDoc),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     await requireHost(ctx);
-    return await ctx.db.query("submissions").order("desc").collect();
+    await requireEvent(ctx, args.eventId);
+
+    const rows = await ctx.db
+      .query("submissions")
+      .withIndex("by_event_status", (q) => q.eq("eventId", args.eventId))
+      .collect();
+
+    return rows.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -126,32 +268,37 @@ export const setStatus = mutation({
   handler: async (ctx, args) => {
     await requireHost(ctx);
 
-    const submission = await ctx.db.get(args.submissionId);
+    const submission = await ctx.db.get("submissions", args.submissionId);
     if (submission === null) {
       throw new ConvexError("Submission not found.");
     }
 
+    if (submission.eventId === undefined) {
+      throw new ConvexError("Submission is missing an event.");
+    }
+
+    const event = await requireEvent(ctx, submission.eventId);
     const isNewlySelected =
       args.status === "selected" && submission.status !== "selected";
 
     if (isNewlySelected) {
       const selected = await ctx.db
         .query("submissions")
-        .withIndex("by_status", (q) => q.eq("status", "selected"))
+        .withIndex("by_event_status", (q) =>
+          q.eq("eventId", event._id).eq("status", "selected"),
+        )
         .collect();
 
-      if (selected.length >= MAX_SELECTED) {
+      if (selected.length >= event.capacity) {
         throw new ConvexError(
-          `All ${MAX_SELECTED} slots are taken. Move someone out of selected first.`,
+          `All ${event.capacity} slots are taken. Move someone out of selected first.`,
         );
       }
     }
 
-    await ctx.db.patch(args.submissionId, {
+    await ctx.db.patch("submissions", args.submissionId, {
       status: args.status,
       updatedAt: Date.now(),
-      // Board order follows selection time, not edit time, so applicants can
-      // fix typos without shuffling the lineup.
       selectedAt: isNewlySelected
         ? Date.now()
         : args.status === "selected"
@@ -163,18 +310,23 @@ export const setStatus = mutation({
   },
 });
 
-/** Public running order for the room: who is up and what they will demo. */
+/** Public running order for one event. */
 export const board = query({
-  args: {},
+  args: { slug: v.optional(v.string()) },
   returns: v.array(boardEntry),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
+    const event = await resolveEvent(ctx, args.slug);
+    if (event === null) {
+      return [];
+    }
+
     const selected = await ctx.db
       .query("submissions")
-      .withIndex("by_status", (q) => q.eq("status", "selected"))
+      .withIndex("by_event_status", (q) =>
+        q.eq("eventId", event._id).eq("status", "selected"),
+      )
       .collect();
 
-    // Rows selected before `selectedAt` existed fall back to `updatedAt`,
-    // preserving the ordering they had under the old sort.
     return selected
       .sort(
         (a, b) => (a.selectedAt ?? a.updatedAt) - (b.selectedAt ?? b.updatedAt),
