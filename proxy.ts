@@ -13,15 +13,21 @@ const clerkKeysPresent = Boolean(
  * With no Clerk keys the app renders a setup checklist, so requests pass
  * through rather than every route failing here.
  */
-function withPathname(request: { nextUrl: { pathname: string } }) {
-  const response = NextResponse.next();
-  response.headers.set("x-pathname", request.nextUrl.pathname);
-  return response;
+function withPathname(request: {
+  nextUrl: { pathname: string };
+  headers: Headers;
+}) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export default clerkKeysPresent
   ? clerkMiddleware()
-  : (request: { nextUrl: { pathname: string } }) => withPathname(request);
+  : (request: { nextUrl: { pathname: string }; headers: Headers }) =>
+      withPathname(request);
 
 export const config = {
   matcher: [
