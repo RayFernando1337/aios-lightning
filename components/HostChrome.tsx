@@ -28,7 +28,6 @@ export default function HostChrome({
           eyebrow never flickers between labels; hrefs use the route slug so
           they are room-scoped from the first paint. */}
       <SiteHeader
-        host
         night={
           loaded && featuredReady
             ? {
