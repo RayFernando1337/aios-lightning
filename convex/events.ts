@@ -8,7 +8,7 @@ import {
   query,
 } from "./_generated/server";
 import { requireHost } from "./lib/auth";
-import { countSelected } from "./lib/counts";
+import { countByStatus, countSelected } from "./lib/counts";
 import {
   getEventBySlug,
   getFeaturedEvent,
@@ -17,6 +17,7 @@ import {
   resolveEvent,
   setFeaturedEvent,
 } from "./lib/eventLookup";
+import { guestCopyValidator } from "./lib/guestCopy";
 import {
   CAPACITY_MAX,
   CAPACITY_MIN,
@@ -27,7 +28,13 @@ import { backfillOrphanPage } from "./lib/orphanBackfill";
 import { hasSlugShape, isReservedSlug, slugify } from "./lib/slug";
 import { requireText } from "./lib/text";
 import { phaseValidator, ruleValidator } from "./schema";
-import { AIOS_SF_SEED, SITE, copyForCapacity } from "./seedCopy";
+import {
+  AIOS_SF_SEED,
+  HTW_SEED,
+  LIGHTNING_GUEST_COPY,
+  SITE,
+  copyForCapacity,
+} from "./seedCopy";
 
 export const publicEventValidator = v.object({
   _id: v.id("events"),
@@ -42,12 +49,14 @@ export const publicEventValidator = v.object({
   phase: phaseValidator,
   rules: v.array(ruleValidator),
   flow: v.array(v.string()),
+  guestCopy: guestCopyValidator,
 });
 
 export type PublicEvent = Infer<typeof publicEventValidator>;
 
 const hostEventValidator = v.object({
   event: publicEventValidator,
+  hostNote: v.optional(v.string()),
   counts: v.object({
     submitted: v.number(),
     shortlisted: v.number(),
@@ -81,6 +90,7 @@ function toPublicEvent(event: {
   phase: PublicEvent["phase"];
   rules: PublicEvent["rules"];
   flow: string[];
+  guestCopy?: PublicEvent["guestCopy"];
 }): PublicEvent {
   return {
     _id: event._id,
@@ -95,6 +105,7 @@ function toPublicEvent(event: {
     phase: event.phase,
     rules: event.rules,
     flow: event.flow,
+    guestCopy: event.guestCopy ?? LIGHTNING_GUEST_COPY,
   };
 }
 
@@ -165,7 +176,7 @@ export const listOpen = query({
     const events = await ctx.db
       .query("events")
       .withIndex("by_phase", (q) => q.eq("phase", "open"))
-      .collect();
+      .take(32);
     const featuredId = await getStoredFeaturedEventId(ctx);
 
     const rows = [];
@@ -177,7 +188,7 @@ export const listOpen = query({
         when: event.when,
         room: event.room,
         capacity: event.capacity,
-        selectedCount: await countSelected(ctx, event._id),
+        selectedCount: await countSelected(ctx, event._id, event.capacity),
         featured: featuredId === event._id,
       });
     }
@@ -196,33 +207,50 @@ export const listForHost = query({
   returns: v.array(hostEventValidator),
   handler: async (ctx) => {
     await requireHost(ctx);
-    const events = await ctx.db.query("events").order("desc").collect();
+    const events = await ctx.db.query("events").order("desc").take(64);
     const featuredId = await getStoredFeaturedEventId(ctx);
+    const appliedBound = 200;
 
     const rows = [];
     for (const event of events) {
-      const submissions = await ctx.db
-        .query("submissions")
-        .withIndex("by_event_status", (q) => q.eq("eventId", event._id))
-        .collect();
       const counts = {
-        submitted: 0,
-        shortlisted: 0,
-        selected: 0,
-        rejected: 0,
+        submitted: await countByStatus(
+          ctx,
+          event._id,
+          "submitted",
+          appliedBound,
+        ),
+        shortlisted: await countByStatus(
+          ctx,
+          event._id,
+          "shortlisted",
+          appliedBound,
+        ),
+        selected: await countSelected(ctx, event._id, event.capacity),
+        rejected: await countByStatus(
+          ctx,
+          event._id,
+          "rejected",
+          appliedBound,
+        ),
       };
-      for (const submission of submissions) {
-        counts[submission.status] += 1;
-      }
 
       rows.push({
         event: toPublicEvent(event),
+        hostNote: event.hostNote,
         counts,
         featured: featuredId === event._id,
       });
     }
 
-    return rows;
+    return rows.sort((a, b) => {
+      const rank = (phase: PublicEvent["phase"]) =>
+        phase === "open" ? 0 : phase === "closed" ? 1 : 2;
+      if (a.featured !== b.featured) {
+        return a.featured ? -1 : 1;
+      }
+      return rank(a.event.phase) - rank(b.event.phase);
+    });
   },
 });
 
@@ -265,6 +293,7 @@ export const create = mutation({
       phase: "open",
       rules: copy.rules,
       flow: copy.flow,
+      guestCopy: LIGHTNING_GUEST_COPY,
       createdAt: now,
       updatedAt: now,
     });
@@ -326,7 +355,7 @@ export const update = mutation({
     }
     if (args.capacity !== undefined) {
       const capacity = requireCapacity(args.capacity);
-      const selected = await countSelected(ctx, event._id);
+      const selected = await countSelected(ctx, event._id, event.capacity);
       if (capacity < selected) {
         throw new ConvexError(
           `Capacity cannot drop below the ${selected} already selected. Move someone out first.`,
@@ -348,30 +377,40 @@ export const setFeatured = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     await requireHost(ctx);
-    await requireEvent(ctx, args.eventId);
+    const event = await requireEvent(ctx, args.eventId);
+    if (event.phase === "archived") {
+      throw new ConvexError("Archived nights stay off the house address.");
+    }
     await setFeaturedEvent(ctx, args.eventId);
     return null;
   },
 });
 
-async function resolveSeedEvent(ctx: MutationCtx) {
+async function insertSeed(
+  ctx: MutationCtx,
+  seed: typeof AIOS_SF_SEED | typeof HTW_SEED,
+) {
+  const now = Date.now();
+  const eventId = await ctx.db.insert("events", {
+    ...seed,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return await ctx.db.get("events", eventId);
+}
+
+async function resolveSfEvent(ctx: MutationCtx) {
   const bySlug = await getEventBySlug(ctx, AIOS_SF_SEED.slug);
   if (bySlug !== null) {
     return bySlug;
   }
 
-  const fallback = await getFeaturedEvent(ctx);
-  if (fallback !== null) {
-    return fallback;
+  const existing = await ctx.db.query("events").first();
+  if (existing !== null) {
+    return existing;
   }
 
-  const now = Date.now();
-  const eventId = await ctx.db.insert("events", {
-    ...AIOS_SF_SEED,
-    createdAt: now,
-    updatedAt: now,
-  });
-  return await ctx.db.get("events", eventId);
+  return await insertSeed(ctx, AIOS_SF_SEED);
 }
 
 async function continueOrphanBackfill(
@@ -389,20 +428,37 @@ async function continueOrphanBackfill(
   });
 }
 
-async function seedAndBackfill(
+async function stageHtwWeekendInner(
   ctx: MutationCtx,
 ): Promise<Id<"events"> | null> {
-  const event = await resolveSeedEvent(ctx);
-  if (event === null) {
+  const sf = await resolveSfEvent(ctx);
+  if (sf === null) {
     return null;
   }
 
-  if ((await getStoredFeaturedEventId(ctx)) === null) {
-    await setFeaturedEvent(ctx, event._id);
+  if (sf.guestCopy === undefined) {
+    await ctx.db.patch("events", sf._id, {
+      guestCopy: LIGHTNING_GUEST_COPY,
+    });
   }
 
-  await continueOrphanBackfill(ctx, event._id, null);
-  return event._id;
+  await continueOrphanBackfill(ctx, sf._id, null);
+
+  if (sf.phase !== "archived") {
+    await ctx.db.patch("events", sf._id, {
+      phase: "archived",
+      updatedAt: Date.now(),
+    });
+  }
+
+  const existingHtw = await getEventBySlug(ctx, HTW_SEED.slug);
+  const htw = existingHtw ?? (await insertSeed(ctx, HTW_SEED));
+  if (htw === null) {
+    return null;
+  }
+
+  await setFeaturedEvent(ctx, htw._id);
+  return htw._id;
 }
 
 export const ensureSeed = mutation({
@@ -410,7 +466,16 @@ export const ensureSeed = mutation({
   returns: v.union(v.id("events"), v.null()),
   handler: async (ctx) => {
     await requireHost(ctx);
-    return await seedAndBackfill(ctx);
+    return await stageHtwWeekendInner(ctx);
+  },
+});
+
+export const stageHtwWeekend = mutation({
+  args: {},
+  returns: v.union(v.id("events"), v.null()),
+  handler: async (ctx) => {
+    await requireHost(ctx);
+    return await stageHtwWeekendInner(ctx);
   },
 });
 
@@ -423,7 +488,15 @@ export const ensurePublicSeed = mutation({
     if ((await ctx.db.query("events").first()) !== null) {
       return null;
     }
-    return await seedAndBackfill(ctx);
+    return await stageHtwWeekendInner(ctx);
+  },
+});
+
+export const internalStageHtwWeekend = internalMutation({
+  args: {},
+  returns: v.union(v.id("events"), v.null()),
+  handler: async (ctx) => {
+    return await stageHtwWeekendInner(ctx);
   },
 });
 

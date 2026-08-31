@@ -70,7 +70,7 @@ export const mineAll = query({
     const rows = await ctx.db
       .query("submissions")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
+      .take(32);
 
     const result = [];
     for (const row of rows) {
@@ -131,7 +131,7 @@ export const submit = mutation({
       )
       .first();
 
-    if (existing === null && event.phase === "closed") {
+    if (existing === null && event.phase !== "open") {
       throw new ConvexError("Applications are closed for this event.");
     }
 
@@ -252,7 +252,7 @@ export const listForHost = query({
     const rows = await ctx.db
       .query("submissions")
       .withIndex("by_event_status", (q) => q.eq("eventId", args.eventId))
-      .collect();
+      .take(200);
 
     return rows.sort((a, b) => b.createdAt - a.createdAt);
   },
@@ -287,7 +287,7 @@ export const setStatus = mutation({
         .withIndex("by_event_status", (q) =>
           q.eq("eventId", event._id).eq("status", "selected"),
         )
-        .collect();
+        .take(event.capacity);
 
       if (selected.length >= event.capacity) {
         throw new ConvexError(
@@ -325,7 +325,7 @@ export const board = query({
       .withIndex("by_event_status", (q) =>
         q.eq("eventId", event._id).eq("status", "selected"),
       )
-      .collect();
+      .take(event.capacity);
 
     return selected
       .sort(

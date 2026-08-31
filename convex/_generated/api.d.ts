@@ -13,6 +13,7 @@ import type * as hosts from "../hosts.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_counts from "../lib/counts.js";
 import type * as lib_eventLookup from "../lib/eventLookup.js";
+import type * as lib_guestCopy from "../lib/guestCopy.js";
 import type * as lib_hosts from "../lib/hosts.js";
 import type * as lib_limits from "../lib/limits.js";
 import type * as lib_orphanBackfill from "../lib/orphanBackfill.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/counts": typeof lib_counts;
   "lib/eventLookup": typeof lib_eventLookup;
+  "lib/guestCopy": typeof lib_guestCopy;
   "lib/hosts": typeof lib_hosts;
   "lib/limits": typeof lib_limits;
   "lib/orphanBackfill": typeof lib_orphanBackfill;

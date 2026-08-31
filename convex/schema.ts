@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { guestCopyValidator } from "./lib/guestCopy";
 
 export const statusValidator = v.union(
   v.literal("submitted"),
@@ -8,7 +9,11 @@ export const statusValidator = v.union(
   v.literal("rejected"),
 );
 
-export const phaseValidator = v.union(v.literal("open"), v.literal("closed"));
+export const phaseValidator = v.union(
+  v.literal("open"),
+  v.literal("closed"),
+  v.literal("archived"),
+);
 
 export const ruleValidator = v.object({
   title: v.string(),
@@ -27,6 +32,8 @@ export const eventFields = {
   phase: phaseValidator,
   rules: v.array(ruleValidator),
   flow: v.array(v.string()),
+  guestCopy: v.optional(guestCopyValidator),
+  hostNote: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
 };

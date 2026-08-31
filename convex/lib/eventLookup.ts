@@ -27,21 +27,16 @@ export async function getFeaturedEvent(
   const featuredEventId = await getStoredFeaturedEventId(ctx);
   if (featuredEventId !== null) {
     const featured = await ctx.db.get("events", featuredEventId);
-    if (featured !== null) {
+    if (featured !== null && featured.phase !== "archived") {
       return featured;
     }
   }
 
-  const open = await ctx.db
+  return await ctx.db
     .query("events")
     .withIndex("by_phase", (q) => q.eq("phase", "open"))
     .order("desc")
     .first();
-  if (open !== null) {
-    return open;
-  }
-
-  return await ctx.db.query("events").order("desc").first();
 }
 
 export async function resolveEvent(
