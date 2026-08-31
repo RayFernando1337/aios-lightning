@@ -16,6 +16,7 @@ import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { FIELD_LIMITS } from "@/convex/lib/limits";
 import { readableError } from "@/lib/errors";
+import type { GuestCopy } from "@/convex/lib/guestCopy";
 import { eventApplyPath } from "@/lib/paths";
 import { APPLICANT_NEXT_STEP } from "@/lib/status";
 import {
@@ -35,10 +36,11 @@ type ApplyFormProps = {
   boardHref: string;
   capacity: number;
   dryRun: string;
-  phase: "open" | "closed";
+  phase: "open" | "closed" | "archived";
   eventName: string;
   eventWhen: string;
   eventRoom: string;
+  guestCopy: GuestCopy;
 };
 
 function eventLine(name: string, when: string, room: string): string {
@@ -87,7 +89,7 @@ function ApplyFlow(props: ApplyFormProps) {
     return <p className="text-muted">Loading your application...</p>;
   }
 
-  if (mine === null && props.phase === "closed") {
+  if (mine === null && props.phase !== "open") {
     return (
       <div className={card}>
         <p className="font-semibold">Applications are closed.</p>
@@ -120,6 +122,7 @@ function ApplyFlow(props: ApplyFormProps) {
         eventWhen={props.eventWhen}
         eventRoom={props.eventRoom}
         eventId={props.eventId}
+        guestCopy={props.guestCopy}
         openNights={nights}
         onEdit={() => setEditing(true)}
       />
@@ -144,6 +147,7 @@ function ApplyFlow(props: ApplyFormProps) {
         existing={mine}
         slug={props.slug}
         fallbackName={user?.fullName ?? user?.firstName ?? ""}
+        guestCopy={props.guestCopy}
         onSaved={() => setEditing(false)}
         secondTalk={mine === null && otherSignups.length > 0}
       />
@@ -219,6 +223,7 @@ function SubmittedCard({
   eventWhen,
   eventRoom,
   eventId,
+  guestCopy,
   openNights,
   onEdit,
 }: {
@@ -230,6 +235,7 @@ function SubmittedCard({
   eventWhen: string;
   eventRoom: string;
   eventId: Id<"events">;
+  guestCopy: GuestCopy;
   openNights: {
     _id: Id<"events">;
     slug: string;
@@ -272,7 +278,7 @@ function SubmittedCard({
         <dl className="mt-5 space-y-4 border-t border-line pt-5 text-sm">
           <div>
             <dt className="font-mono text-[11px] tracking-[0.22em] text-paper uppercase">
-              Showing live
+              {guestCopy.liveReviewLabel}
             </dt>
             <dd className="mt-1 whitespace-pre-line text-muted">
               {submission.whatYoullShowLive}
@@ -280,7 +286,7 @@ function SubmittedCard({
           </div>
           <div>
             <dt className="font-mono text-[11px] tracking-[0.22em] text-paper uppercase">
-              Takeaway
+              {guestCopy.takeawayReviewLabel}
             </dt>
             <dd className="mt-1 whitespace-pre-line text-muted">
               {submission.takeaway}
@@ -346,12 +352,14 @@ function Fields({
   existing,
   slug,
   fallbackName,
+  guestCopy,
   onSaved,
   secondTalk,
 }: {
   existing: Doc<"submissions"> | null;
   slug?: string;
   fallbackName: string;
+  guestCopy: GuestCopy;
   onSaved: () => void;
   secondTalk: boolean;
 }) {
@@ -402,69 +410,64 @@ function Fields({
         <div className="space-y-5">
           <div>
             <label htmlFor="displayName" className={fieldLabel}>
-              Your name
+              {guestCopy.displayName.label}
             </label>
-            <p className={fieldHint}>How the host should read it out.</p>
+            <p className={fieldHint}>{guestCopy.displayName.hint}</p>
             <input
               id="displayName"
               className={`${input} mt-2`}
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
               maxLength={FIELD_LIMITS.displayName}
-              placeholder="Ray Fernando"
+              placeholder={guestCopy.displayName.placeholder}
               required
             />
           </div>
 
           <div>
             <label htmlFor="demoTitle" className={fieldLabel}>
-              Demo title
+              {guestCopy.demoTitle.label}
             </label>
-            <p className={fieldHint}>Six words or fewer lands best.</p>
+            <p className={fieldHint}>{guestCopy.demoTitle.hint}</p>
             <input
               id="demoTitle"
               className={`${input} mt-2`}
               value={demoTitle}
               onChange={(event) => setDemoTitle(event.target.value)}
               maxLength={FIELD_LIMITS.demoTitle}
-              placeholder="On device Whisper in a Swift app"
+              placeholder={guestCopy.demoTitle.placeholder}
               required
             />
           </div>
 
           <div>
             <label htmlFor="whatYoullShowLive" className={fieldLabel}>
-              What you will show live
+              {guestCopy.whatYoullShowLive.label}
             </label>
-            <p className={fieldHint}>
-              What is on screen, what is running, and on what device. Open with
-              it. Hosts pick from the first couple of lines.
-            </p>
+            <p className={fieldHint}>{guestCopy.whatYoullShowLive.hint}</p>
             <textarea
               id="whatYoullShowLive"
               className={`${input} mt-2 min-h-28`}
               value={whatYoullShowLive}
               onChange={(event) => setWhatYoullShowLive(event.target.value)}
               maxLength={FIELD_LIMITS.whatYoullShowLive}
-              placeholder="iPhone 16 on stage mirror, local model transcribing me in real time, no network."
+              placeholder={guestCopy.whatYoullShowLive.placeholder}
               required
             />
           </div>
 
           <div>
             <label htmlFor="takeaway" className={fieldLabel}>
-              One takeaway for the room
+              {guestCopy.takeaway.label}
             </label>
-            <p className={fieldHint}>
-              What can someone go try tomorrow because they watched you?
-            </p>
+            <p className={fieldHint}>{guestCopy.takeaway.hint}</p>
             <textarea
               id="takeaway"
               className={`${input} mt-2 min-h-24`}
               value={takeaway}
               onChange={(event) => setTakeaway(event.target.value)}
               maxLength={FIELD_LIMITS.takeaway}
-              placeholder="How to ship a Core ML model without blowing up app size."
+              placeholder={guestCopy.takeaway.placeholder}
               required
             />
           </div>
@@ -478,19 +481,19 @@ function Fields({
             id="noSlides"
             checked={noSlides}
             onChange={setNoSlides}
-            label="No slides. Laptop or phone demo only."
+            label={guestCopy.noSlides}
           />
           <Checkbox
             id="noPitch"
             checked={noPitch}
             onChange={setNoPitch}
-            label="No pitch. No downloads, no waitlists, no pricing."
+            label={guestCopy.noPitch}
           />
           <Checkbox
             id="readyIn60s"
             checked={readyIn60s}
             onChange={setReadyIn60s}
-            label="I can be plugged in and running in 60 seconds."
+            label={guestCopy.readyIn60s}
           />
         </div>
       </div>

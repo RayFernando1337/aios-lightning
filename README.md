@@ -2,7 +2,8 @@
 
 Signup and live running order for a lightning-demo night. Applicants apply in
 about a minute, hosts triage from a phone, and the projector board updates as
-slots lock. The seeded copy is the AiOS Meetup SF night at Convex HQ. Hosts post later
+slots lock. The live featured night is Build with Grok Bot at Hawaii Tech Week.
+The older AiOS SF night stays in the host desk as archived. Hosts post later
 nights from `/host` without a git edit.
 
 Next.js 16 App Router, TypeScript, Tailwind v4, Convex for data, Clerk for auth,
@@ -13,9 +14,9 @@ deployed on Vercel. MIT licensed.
 1. Fork or clone the repo.
 2. Follow [Local setup](#local-setup) to wire Convex and Clerk, and put your
    own address in `HOST_EMAILS`.
-3. Sign in, open `/host`, and post a night. The first visit seeds the AiOS SF
-   copy so you have a working example. Later nights are a form, not a git edit.
-   Each night gets a URL like `/e/workshop-b` for the room QR.
+3. Sign in, open `/host`. The first host visit (or an empty public load) seeds
+   HTW as the featured night and archives AiOS SF. Later nights are a form, not
+   a git edit. Each night gets a URL like `/e/htw-grok-bot` for the room QR.
 4. Ship it with [Deploy to Vercel](#deploy-to-vercel), then walk the
    [night-of checklist](#night-of-checklist).
 
@@ -56,6 +57,10 @@ where they read data, and every Convex function checks again on the backend.
 `/host` page, Convex uses it to reject host mutations from anyone else. Set it in
 both places. There is no fallback in code. While the variable is unset, nobody
 can open `/host`, and the page tells you which address to add.
+
+`HOST_EMAILS` is deployment-wide. There is no per-event host list. For the HTW
+weekend set it to `smile@rayfernando.ai` only, on Vercel and on the Convex
+deployment. Do not add other meetup or partner addresses.
 
 The public keys are inlined at build time, so redeploy after changing them. If
 either public key is missing, every page renders a short setup checklist instead
@@ -171,8 +176,10 @@ includes an email claim:
 `convex/schema.ts` has three tables.
 
 `events`: `name`, `slug`, `when`, `where`, `room`, `capacity`, `dryRun`,
-`heroImage`, `phase` (`open` or `closed`), `rules`, `flow`, timestamps.
-Indexed `by_slug` and `by_phase`.
+`heroImage`, `phase` (`open`, `closed`, or `archived`), `rules`, `flow`,
+`guestCopy` (apply and board labels), optional `hostNote`, timestamps.
+Indexed `by_slug` and `by_phase`. Archived nights stay on the host desk and
+drop off `/` and the public picker.
 
 `settings`: one row that points `/` at a featured event.
 
@@ -198,9 +205,12 @@ Rules enforced in Convex, not just in the UI:
    `HOST_EMAILS`, then redeploy.
 2. Sign in and open `/host`. If it denies you, the email you signed in with is
    missing from `HOST_EMAILS` in Vercel, on Convex, or both. The first visit
-   seeds the AiOS SF night if the table is empty.
-3. Post tonight's night if you need a new one. Copy the attendee link and put
-   that URL on the room QR. The house QR can stay on `/` for the featured night.
+   archives AiOS SF if it is still open, inserts `htw-grok-bot` when missing,
+   and points `/` at HTW. You can also run
+   `bunx convex run internal.events.internalStageHtwWeekend` on a logged-in
+   machine. Re-running is safe. It does not overwrite HTW or SF copy in place.
+3. Copy the HTW attendee link (`/e/htw-grok-bot`) for the room QR. The house QR
+   can stay on `/` for the featured night.
 4. Apply once yourself to smoke test the flow, then set that row to rejected.
 5. Put `/board` or `/e/[slug]/board` on the projector. It updates itself as you
    select.

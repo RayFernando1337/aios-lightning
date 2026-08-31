@@ -22,6 +22,7 @@ export default function HostEventBody({ slug }: { slug: string }) {
 function Loaded({ slug }: { slug: string }) {
   const event = useQuery(api.events.bySlug, { slug });
   const featured = useQuery(api.events.featured);
+  const nights = useQuery(api.events.listForHost);
 
   if (event === undefined || featured === undefined) {
     return <p className="text-muted">Loading this night...</p>;
@@ -44,6 +45,7 @@ function Loaded({ slug }: { slug: string }) {
         featured={featured?._id === event._id}
         when={event.when}
         capacity={event.capacity}
+        hostNote={nights?.find((row) => row.event._id === event._id)?.hostNote}
       />
       <HostDashboard eventId={event._id} capacity={event.capacity} />
     </div>

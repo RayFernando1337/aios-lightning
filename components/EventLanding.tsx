@@ -31,7 +31,13 @@ export default function EventLanding({
   return (
     <>
       <FilmLeader alreadyPlayed={alreadyPlayed} />
-      <SiteHeader night={{ slug: house ? null : event.slug, name: event.name }} />
+      <SiteHeader
+        night={{
+          slug: house ? null : event.slug,
+          name: event.name,
+          brand: event.guestCopy.brand,
+        }}
+      />
 
       <main>
         <section className="relative min-h-[100svh]">
@@ -64,11 +70,14 @@ export default function EventLanding({
                 )}
               </h1>
               <p className="mt-6 max-w-xl text-lg text-cream/90 sm:text-xl">
-                {event.capacity} demos. Two to three minutes each. Working software
-                only. {roomLine}.
+                {event.capacity} {event.guestCopy.heroLead} {roomLine}.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <ApplyCta href={applyHref} />
+                <ApplyCta
+                  href={applyHref}
+                  label={event.guestCopy.applyCta}
+                  signedOutLabel={event.guestCopy.applyCtaSignedOut}
+                />
                 <Link href={boardHref} className={buttonSecondary}>
                   See the board
                 </Link>
@@ -87,12 +96,16 @@ export default function EventLanding({
                 Slots · live only
               </p>
               <div className="mt-5 border-t border-dashed border-paper/20 pt-4 text-sm text-cream/85">
-                {event.phase === "closed"
+                {event.phase !== "open"
                   ? "Applications are closed."
                   : `Slots close when the ${event.capacity} are picked.`}
               </div>
               <div className="mt-5">
-                <ApplyCta href={applyHref} />
+                <ApplyCta
+                  href={applyHref}
+                  label={event.guestCopy.applyCta}
+                  signedOutLabel={event.guestCopy.applyCtaSignedOut}
+                />
               </div>
             </aside>
           </div>
@@ -169,6 +182,7 @@ export default function EventLanding({
           slug={house ? undefined : event.slug}
           capacity={event.capacity}
           boardHref={boardHref}
+          heading={event.guestCopy.boardHeading}
         />
 
         <section className="border-t border-line px-[var(--pad)] py-24">
@@ -189,9 +203,13 @@ export default function EventLanding({
             ))}
           </ol>
           <div className="mt-12 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <ApplyCta href={applyHref} />
+            <ApplyCta
+              href={applyHref}
+              label={event.guestCopy.applyCta}
+              signedOutLabel={event.guestCopy.applyCtaSignedOut}
+            />
             <p className="font-mono text-[11px] tracking-[0.22em] text-muted uppercase">
-              {event.phase === "closed"
+              {event.phase !== "open"
                 ? "Applications are closed."
                 : `Slots close when the ${event.capacity} are picked.`}
             </p>

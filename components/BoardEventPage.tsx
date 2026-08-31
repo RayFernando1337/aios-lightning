@@ -34,15 +34,27 @@ export default function BoardEventPage({ slug }: { slug?: string }) {
 
   return (
     <>
-      <SiteHeader night={{ slug: slug ?? null, name: event.name }} />
+      <SiteHeader
+        night={{
+          slug: slug ?? null,
+          name: event.name,
+          brand: event.guestCopy.brand,
+        }}
+      />
       <main className={`${pageMain} max-w-4xl`}>
         <MainNightLink />
         <p className={`${eyebrow} mt-4`}>{roomLine}</p>
         <h1 className="font-display mt-3 text-5xl tracking-[-0.035em] sm:text-7xl">
-          TONIGHT&apos;S BOARD
+          {event.guestCopy.boardHeading}
         </h1>
         <div className="mt-10">
-          <BoardList slug={slug} capacity={event.capacity} />
+          <BoardList
+            slug={slug}
+            capacity={event.capacity}
+            showTakeaway={event.guestCopy.showTakeawayOnBoard}
+            liveLabel={event.guestCopy.liveReviewLabel}
+            takeawayLabel={event.guestCopy.takeawayReviewLabel}
+          />
         </div>
       </main>
     </>

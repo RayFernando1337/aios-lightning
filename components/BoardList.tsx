@@ -7,9 +7,15 @@ import { card } from "@/lib/styles";
 export default function BoardList({
   slug,
   capacity,
+  showTakeaway = true,
+  liveLabel = "Showing live",
+  takeawayLabel = "Takeaway",
 }: {
   slug?: string;
   capacity: number;
+  showTakeaway?: boolean;
+  liveLabel?: string;
+  takeawayLabel?: string;
 }) {
   const entries = useQuery(
     api.submissions.board,
@@ -53,13 +59,14 @@ export default function BoardList({
               </p>
               {entry.whatYoullShowLive ? (
                 <p className="mt-3 whitespace-pre-line text-cream/85 sm:text-lg">
+                  <span className="sr-only">{liveLabel}. </span>
                   {entry.whatYoullShowLive}
                 </p>
               ) : null}
-              {entry.takeaway ? (
+              {showTakeaway && entry.takeaway ? (
                 <p className="mt-3 text-sm text-cream/80 sm:text-base">
                   <span className="font-mono text-[11px] font-bold tracking-[0.22em] text-admit uppercase">
-                    Takeaway ·{" "}
+                    {takeawayLabel} ·{" "}
                   </span>
                   {entry.takeaway}
                 </p>

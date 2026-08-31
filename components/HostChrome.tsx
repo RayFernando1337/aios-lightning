@@ -31,7 +31,12 @@ export default function HostChrome({
         host
         night={
           loaded && featuredReady
-            ? { slug: event.slug, name: event.name, house }
+            ? {
+                slug: event.slug,
+                name: event.name,
+                brand: event.guestCopy.brand,
+                house,
+              }
             : { slug }
         }
       />

@@ -158,7 +158,7 @@ function CreateEventForm() {
       </div>
       <div>
         <p className={fieldLabel}>When</p>
-        <p className={fieldHint}>San Francisco date and doors. No typing.</p>
+        <p className={fieldHint}>Venue date and doors. No typing.</p>
         <div className="mt-2">
           <WhenPicker
             dateISO={dateISO}

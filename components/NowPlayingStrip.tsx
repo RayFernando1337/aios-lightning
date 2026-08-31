@@ -9,10 +9,12 @@ export default function NowPlayingStrip({
   slug,
   capacity,
   boardHref,
+  heading = "TONIGHT'S BOARD",
 }: {
   slug?: string;
   capacity: number;
   boardHref: string;
+  heading?: string;
 }) {
   const entries = useQuery(
     api.submissions.board,
@@ -29,7 +31,7 @@ export default function NowPlayingStrip({
         <div>
           <p className={eyebrow}>Now playing</p>
           <h2 className="font-display mt-3 text-4xl tracking-[-0.035em] text-paper sm:text-6xl">
-            TONIGHT&apos;S BOARD
+            {heading}
           </h2>
         </div>
         <Link

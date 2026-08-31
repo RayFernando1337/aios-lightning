@@ -75,7 +75,7 @@ function movedNoteFor(
 ): string {
   switch (status) {
     case "selected":
-      return `Moved ${title} to ${night}. Now shortlisted there — pick them again if they should present.`;
+      return `Moved ${title} to ${night}. Now shortlisted there. Pick them again if they should present.`;
     case "rejected":
       return `Moved ${title} to ${night}. Back in as a fresh submitted application.`;
     case "submitted":

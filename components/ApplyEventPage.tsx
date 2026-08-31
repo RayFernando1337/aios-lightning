@@ -39,16 +39,21 @@ export default function ApplyEventPage({ slug }: { slug?: string }) {
 
   return (
     <>
-      <SiteHeader night={{ slug: slug ?? null, name: event.name }} />
+      <SiteHeader
+        night={{
+          slug: slug ?? null,
+          name: event.name,
+          brand: event.guestCopy.brand,
+        }}
+      />
       <main className={pageMain}>
         <MainNightLink />
         <p className={`${eyebrow} mt-4`}>01 · {event.name}</p>
         <h1 className="font-display mt-3 text-5xl tracking-[-0.035em] sm:text-7xl">
-          APPLY TO DEMO
+          {event.guestCopy.applyTitle}
         </h1>
         <p className="mt-4 max-w-xl text-cream/85">
-          {roomLine}. {event.capacity} slots, two to three minutes each. Tell
-          us what will be running on screen and what the room learns from it.
+          {roomLine}. {event.capacity} slots. {event.guestCopy.applyLead}
         </p>
         <div className="mt-10">
           <ApplyForm
@@ -62,6 +67,7 @@ export default function ApplyEventPage({ slug }: { slug?: string }) {
             eventName={event.name}
             eventWhen={event.when}
             eventRoom={event.room}
+            guestCopy={event.guestCopy}
           />
         </div>
       </main>

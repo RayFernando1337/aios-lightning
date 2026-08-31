@@ -24,7 +24,12 @@ export default function SiteHeader({
   night,
   host = false,
 }: {
-  night?: { slug: string | null; name?: string; house?: boolean };
+  night?: {
+    slug: string | null;
+    name?: string;
+    brand?: string;
+    house?: boolean;
+  };
   host?: boolean;
 }) {
   const isHost = useQuery(api.hosts.amHost) === true;
@@ -43,7 +48,7 @@ export default function SiteHeader({
         >
           <TicketMark />
           <span>
-            AiOS SF <span className="font-display tracking-tight">Lightning</span>
+            {night?.brand ?? "AiOS SF Lightning"}
           </span>
         </Link>
         {night?.name !== undefined && (

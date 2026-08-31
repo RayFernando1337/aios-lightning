@@ -17,13 +17,15 @@ export default function HostEventControls({
   featured,
   when,
   capacity,
+  hostNote,
 }: {
   eventId: Id<"events">;
   slug: string;
-  phase: "open" | "closed";
+  phase: "open" | "closed" | "archived";
   featured: boolean;
   when: string;
   capacity: number;
+  hostNote?: string;
 }) {
   const update = useMutation(api.events.update);
   const setFeatured = useMutation(api.events.setFeatured);
@@ -48,12 +50,12 @@ export default function HostEventControls({
     Number.isInteger(Number(slots)) &&
     Number(slots) !== capacity;
 
-  async function togglePhase() {
+  async function setPhase(next: "open" | "closed" | "archived") {
     setError(null);
     try {
       await update({
         eventId,
-        phase: phase === "open" ? "closed" : "open",
+        phase: next,
       });
     } catch (caught) {
       setError(readableError(caught));
@@ -102,7 +104,7 @@ export default function HostEventControls({
         </p>
         <p className={fieldHint}>
           {dateChosen
-            ? "San Francisco date and doors."
+            ? "Venue date and doors."
             : "This marquee line is free text. Pick a date to replace it."}
         </p>
         <WhenPicker
@@ -151,16 +153,54 @@ export default function HostEventControls({
           {savingSlots ? "Saving..." : "Save slots"}
         </button>
       </div>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <button type="button" onClick={() => void togglePhase()} className={buttonSecondary}>
-          {phase === "open" ? "Close applications" : "Reopen applications"}
-        </button>
-        {!featured && (
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {phase === "open" && (
+          <button
+            type="button"
+            onClick={() => void setPhase("closed")}
+            className={buttonSecondary}
+          >
+            Close applications
+          </button>
+        )}
+        {phase === "closed" && (
+          <button
+            type="button"
+            onClick={() => void setPhase("open")}
+            className={buttonSecondary}
+          >
+            Reopen applications
+          </button>
+        )}
+        {phase !== "archived" && (
+          <button
+            type="button"
+            onClick={() => void setPhase("archived")}
+            className={buttonSecondary}
+          >
+            Archive off home
+          </button>
+        )}
+        {phase === "archived" && (
+          <button
+            type="button"
+            onClick={() => void setPhase("closed")}
+            className={buttonSecondary}
+          >
+            Unarchive
+          </button>
+        )}
+        {!featured && phase !== "archived" && (
           <button type="button" onClick={() => void feature()} className={buttonSecondary}>
             Put on /
           </button>
         )}
       </div>
+      {hostNote !== undefined && hostNote.length > 0 && (
+        <p className="border border-dashed border-paper/25 px-4 py-3 text-sm text-cream/80">
+          {hostNote}
+        </p>
+      )}
       <div className={card}>
         <ShareNight slug={slug} featured={featured} />
       </div>
