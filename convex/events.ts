@@ -500,6 +500,46 @@ export const internalStageHtwWeekend = internalMutation({
   },
 });
 
+export const internalSeedDemoTalk = internalMutation({
+  args: { slug: v.string() },
+  returns: v.union(v.id("submissions"), v.null()),
+  handler: async (ctx, args) => {
+    const event = await getEventBySlug(ctx, args.slug);
+    if (event === null) {
+      return null;
+    }
+
+    const existing = await ctx.db
+      .query("submissions")
+      .withIndex("by_event_status", (q) =>
+        q.eq("eventId", event._id).eq("status", "selected"),
+      )
+      .first();
+    if (existing !== null) {
+      return existing._id;
+    }
+
+    const now = Date.now();
+    return await ctx.db.insert("submissions", {
+      eventId: event._id,
+      userId: "harness-demo",
+      email: "",
+      displayName: "Ray Fernando",
+      demoTitle: "Harbor Scout",
+      whatYoullShowLive:
+        "Laptop on the projector. The bot books a table from an open tab.",
+      takeaway: "It booked the table.",
+      noSlides: true,
+      noPitch: true,
+      readyIn60s: true,
+      status: "selected",
+      selectedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
 export const backfillOrphanSubmissions = internalMutation({
   args: {
     eventId: v.id("events"),

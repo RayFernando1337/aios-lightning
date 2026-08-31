@@ -13,7 +13,15 @@ const clerkKeysPresent = Boolean(
  * With no Clerk keys the app renders a setup checklist, so requests pass
  * through rather than every route failing here.
  */
-export default clerkKeysPresent ? clerkMiddleware() : () => NextResponse.next();
+function withPathname(request: { nextUrl: { pathname: string } }) {
+  const response = NextResponse.next();
+  response.headers.set("x-pathname", request.nextUrl.pathname);
+  return response;
+}
+
+export default clerkKeysPresent
+  ? clerkMiddleware()
+  : (request: { nextUrl: { pathname: string } }) => withPathname(request);
 
 export const config = {
   matcher: [
@@ -24,6 +32,7 @@ export const config = {
     "/apply(.*)",
     "/e/(.*)/apply(.*)",
     "/host(.*)",
+    "/harness(.*)",
     "/(api|trpc)(.*)",
     // Always run for Clerk's frontend API routes
     "/__clerk/(.*)",

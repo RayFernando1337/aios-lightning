@@ -1,7 +1,9 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Anton, Inter, Martian_Mono } from "next/font/google";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
+import ConvexOnlyProvider from "@/components/ConvexOnlyProvider";
 import SetupNotice from "@/components/SetupNotice";
 import { missingPublicEnv } from "@/lib/env";
 import "./globals.css";
@@ -34,8 +36,16 @@ export const viewport: Viewport = {
   themeColor: "#171717",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
   const missing = missingPublicEnv();
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const harnessOnly =
+    pathname.startsWith("/harness") &&
+    process.env.NODE_ENV !== "production" &&
+    Boolean(process.env.NEXT_PUBLIC_CONVEX_URL);
+  const blocked = missing.filter((name) =>
+    harnessOnly ? name !== "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" : true,
+  );
 
   return (
     <html
@@ -43,8 +53,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${anton.variable} ${inter.variable} ${martian.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col overflow-x-hidden bg-ink font-sans text-paper">
-        {missing.length > 0 ? (
-          <SetupNotice missing={missing} />
+        {blocked.length > 0 ? (
+          <SetupNotice missing={blocked} />
+        ) : missing.length > 0 ? (
+          <ConvexOnlyProvider>{children}</ConvexOnlyProvider>
         ) : (
           <ClerkProvider>
             <ConvexClientProvider>{children}</ConvexClientProvider>
