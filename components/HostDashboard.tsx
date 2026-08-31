@@ -1,6 +1,12 @@
 "use client";
 
-import { Authenticated, AuthLoading, useMutation, useQuery } from "convex/react";
+import {
+  Authenticated,
+  AuthLoading,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
 import { useState } from "react";
 import MoveSignupControl from "@/components/MoveSignupControl";
 import StatusChip from "@/components/StatusChip";
@@ -88,12 +94,23 @@ function movedNoteFor(
   }
 }
 
+type StatusCounts = {
+  submitted: number;
+  shortlisted: number;
+  selected: number;
+  rejected: number;
+};
+
+const TRIAGE_PAGE = 50;
+
 export default function HostDashboard({
   eventId,
   capacity,
+  counts,
 }: {
   eventId: Id<"events">;
   capacity: number;
+  counts: StatusCounts;
 }) {
   return (
     <>
@@ -101,7 +118,7 @@ export default function HostDashboard({
         <p className="text-muted">Checking your session...</p>
       </AuthLoading>
       <Authenticated>
-        <Triage eventId={eventId} capacity={capacity} />
+        <Triage eventId={eventId} capacity={capacity} counts={counts} />
       </Authenticated>
     </>
   );
@@ -110,15 +127,27 @@ export default function HostDashboard({
 function Triage({
   eventId,
   capacity,
+  counts,
 }: {
   eventId: Id<"events">;
   capacity: number;
+  counts: StatusCounts;
 }) {
-  const submissions = useQuery(api.submissions.listForHost, { eventId });
+  const [filter, setFilter] = useState<Filter>("all");
+  const {
+    results: submissions,
+    status: pageStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.submissions.listForHost,
+    filter === "all"
+      ? { eventId }
+      : { eventId, status: filter },
+    { initialNumItems: TRIAGE_PAGE },
+  );
   const openNights = useQuery(api.events.listOpen);
   const setStatus = useMutation(api.submissions.setStatus);
 
-  const [filter, setFilter] = useState<Filter>("all");
   const [pendingId, setPendingId] = useState<Id<"submissions"> | null>(null);
   // Kept per row so a host holding a phone sees the refusal next to the button
   // they just tapped, not at the top of a list they scrolled past.
@@ -128,22 +157,14 @@ function Triage({
   } | null>(null);
   const [movedNote, setMovedNote] = useState<string | null>(null);
 
-  if (submissions === undefined) {
+  if (pageStatus === "LoadingFirstPage") {
     return <p className="text-muted">Loading submissions...</p>;
   }
 
-  const counts = countByStatus(submissions);
   const selectedCount = counts.selected;
-  const sorted = [...submissions].sort(
-    (a, b) =>
-      STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) ||
-      a.createdAt - b.createdAt,
-  );
-  const visible =
-    filter === "all"
-      ? sorted
-      : sorted.filter((submission) => submission.status === filter);
-  const cards = visible.map(toTriageCard);
+  const appliedCount =
+    counts.submitted + counts.shortlisted + counts.selected + counts.rejected;
+  const cards = submissions.map(toTriageCard);
   const moveTargets = (openNights ?? []).filter((night) => night._id !== eventId);
 
   async function changeStatus(
@@ -178,13 +199,13 @@ function Triage({
             slots picked
           </p>
           <p className="font-mono text-[11px] tracking-[0.18em] text-muted uppercase">
-            {submissions.length} applied
+            {appliedCount} applied
           </p>
         </div>
 
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
           <FilterChip
-            label={`All ${submissions.length}`}
+            label={`All ${appliedCount}`}
             active={filter === "all"}
             onClick={() => setFilter("all")}
           />
@@ -240,6 +261,19 @@ function Triage({
             </li>
           ))}
         </ul>
+      )}
+
+      {pageStatus === "CanLoadMore" && (
+        <button
+          type="button"
+          onClick={() => loadMore(TRIAGE_PAGE)}
+          className="min-h-11 w-full border border-line bg-paper/5 px-3 py-2 font-mono text-[11px] font-bold tracking-[0.14em] text-cream uppercase hover:bg-paper/10"
+        >
+          Load older applications
+        </button>
+      )}
+      {pageStatus === "LoadingMore" && (
+        <p className="text-muted">Loading older applications...</p>
       )}
     </div>
   );
@@ -387,19 +421,3 @@ function FilterChip({
   );
 }
 
-function countByStatus(
-  submissions: Doc<"submissions">[],
-): Record<SubmissionStatus, number> {
-  const counts: Record<SubmissionStatus, number> = {
-    submitted: 0,
-    shortlisted: 0,
-    selected: 0,
-    rejected: 0,
-  };
-
-  for (const submission of submissions) {
-    counts[submission.status] += 1;
-  }
-
-  return counts;
-}

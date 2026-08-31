@@ -1,3 +1,7 @@
+import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from "convex/server";
 import { ConvexError, Infer, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { identityIsHost, requireHost, requireIdentity } from "./lib/auth";
@@ -241,20 +245,36 @@ export const move = mutation({
   },
 });
 
-/** Every submission for one event, newest first. Hosts only. */
+/** Host triage page for one event, newest first. Paginated so rows past 200 stay reachable. */
 export const listForHost = query({
-  args: { eventId: v.id("events") },
-  returns: v.array(submissionDoc),
+  args: {
+    eventId: v.id("events"),
+    status: v.optional(statusValidator),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(submissionDoc),
   handler: async (ctx, args) => {
     await requireHost(ctx);
     await requireEvent(ctx, args.eventId);
 
-    const rows = await ctx.db
-      .query("submissions")
-      .withIndex("by_event_status", (q) => q.eq("eventId", args.eventId))
-      .take(200);
+    if (args.status !== undefined) {
+      const status = args.status;
+      return await ctx.db
+        .query("submissions")
+        .withIndex("by_eventId_and_status_and_createdAt", (q) =>
+          q.eq("eventId", args.eventId).eq("status", status),
+        )
+        .order("desc")
+        .paginate(args.paginationOpts);
+    }
 
-    return rows.sort((a, b) => b.createdAt - a.createdAt);
+    return await ctx.db
+      .query("submissions")
+      .withIndex("by_eventId_and_createdAt", (q) =>
+        q.eq("eventId", args.eventId),
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
   },
 });
 

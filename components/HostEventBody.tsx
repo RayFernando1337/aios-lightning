@@ -24,7 +24,7 @@ function Loaded({ slug }: { slug: string }) {
   const featured = useQuery(api.events.featured);
   const nights = useQuery(api.events.listForHost);
 
-  if (event === undefined || featured === undefined) {
+  if (event === undefined || featured === undefined || nights === undefined) {
     return <p className="text-muted">Loading this night...</p>;
   }
 
@@ -36,6 +36,8 @@ function Loaded({ slug }: { slug: string }) {
     );
   }
 
+  const night = nights.find((row) => row.event._id === event._id);
+
   return (
     <div className="space-y-6">
       <HostEventControls
@@ -45,9 +47,20 @@ function Loaded({ slug }: { slug: string }) {
         featured={featured?._id === event._id}
         when={event.when}
         capacity={event.capacity}
-        hostNote={nights?.find((row) => row.event._id === event._id)?.hostNote}
+        hostNote={night?.hostNote}
       />
-      <HostDashboard eventId={event._id} capacity={event.capacity} />
+      <HostDashboard
+        eventId={event._id}
+        capacity={event.capacity}
+        counts={
+          night?.counts ?? {
+            submitted: 0,
+            shortlisted: 0,
+            selected: 0,
+            rejected: 0,
+          }
+        }
+      />
     </div>
   );
 }

@@ -67,10 +67,19 @@ export default defineSchema({
   settings: defineTable({
     featuredEventId: v.id("events"),
     submissionEventBackfillDone: v.optional(v.boolean()),
+    // Set once HTW seed+feature+SF-archive has run. Later ensureSeed calls
+    // must not re-archive SF or rewrite featuredEventId.
+    htwWeekendStaged: v.optional(v.boolean()),
   }),
 
   submissions: defineTable(submissionFields)
     .index("by_event_user", ["eventId", "userId"])
     .index("by_event_status", ["eventId", "status"])
+    .index("by_eventId_and_createdAt", ["eventId", "createdAt"])
+    .index("by_eventId_and_status_and_createdAt", [
+      "eventId",
+      "status",
+      "createdAt",
+    ])
     .index("by_user", ["userId"]),
 });

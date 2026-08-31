@@ -399,18 +399,46 @@ async function insertSeed(
   return await ctx.db.get("events", eventId);
 }
 
-async function resolveSfEvent(ctx: MutationCtx) {
-  const bySlug = await getEventBySlug(ctx, AIOS_SF_SEED.slug);
-  if (bySlug !== null) {
-    return bySlug;
+async function getSettings(ctx: MutationCtx) {
+  return await ctx.db.query("settings").first();
+}
+
+async function markHtwWeekendStaged(
+  ctx: MutationCtx,
+  featuredFallbackId: Id<"events"> | null,
+): Promise<void> {
+  const settings = await getSettings(ctx);
+  if (settings !== null) {
+    if (settings.htwWeekendStaged !== true) {
+      await ctx.db.patch("settings", settings._id, { htwWeekendStaged: true });
+    }
+    return;
   }
 
-  const existing = await ctx.db.query("events").first();
-  if (existing !== null) {
-    return existing;
+  if (featuredFallbackId === null) {
+    return;
   }
 
-  return await insertSeed(ctx, AIOS_SF_SEED);
+  const implicit = await getFeaturedEvent(ctx);
+  await ctx.db.insert("settings", {
+    featuredEventId: implicit?._id ?? featuredFallbackId,
+    htwWeekendStaged: true,
+  });
+}
+
+async function refreshSfSeedIfPresent(ctx: MutationCtx): Promise<void> {
+  const sf = await getEventBySlug(ctx, AIOS_SF_SEED.slug);
+  if (sf === null) {
+    return;
+  }
+
+  if (sf.guestCopy === undefined) {
+    await ctx.db.patch("events", sf._id, {
+      guestCopy: LIGHTNING_GUEST_COPY,
+    });
+  }
+
+  await continueOrphanBackfill(ctx, sf._id, null);
 }
 
 async function continueOrphanBackfill(
@@ -431,33 +459,45 @@ async function continueOrphanBackfill(
 async function stageHtwWeekendInner(
   ctx: MutationCtx,
 ): Promise<Id<"events"> | null> {
-  const sf = await resolveSfEvent(ctx);
-  if (sf === null) {
-    return null;
-  }
-
-  if (sf.guestCopy === undefined) {
-    await ctx.db.patch("events", sf._id, {
-      guestCopy: LIGHTNING_GUEST_COPY,
-    });
-  }
-
-  await continueOrphanBackfill(ctx, sf._id, null);
-
-  if (sf.phase !== "archived") {
-    await ctx.db.patch("events", sf._id, {
-      phase: "archived",
-      updatedAt: Date.now(),
-    });
-  }
-
+  const settings = await getSettings(ctx);
   const existingHtw = await getEventBySlug(ctx, HTW_SEED.slug);
-  const htw = existingHtw ?? (await insertSeed(ctx, HTW_SEED));
+  const alreadyStaged =
+    settings?.htwWeekendStaged === true || existingHtw !== null;
+
+  if (alreadyStaged) {
+    await markHtwWeekendStaged(ctx, existingHtw?._id ?? null);
+    await refreshSfSeedIfPresent(ctx);
+    return existingHtw?._id ?? null;
+  }
+
+  const anyEvent = await ctx.db.query("events").first();
+  let sf = await getEventBySlug(ctx, AIOS_SF_SEED.slug);
+  if (sf === null && anyEvent === null) {
+    sf = await insertSeed(ctx, AIOS_SF_SEED);
+  }
+
+  if (sf !== null) {
+    if (sf.guestCopy === undefined) {
+      await ctx.db.patch("events", sf._id, {
+        guestCopy: LIGHTNING_GUEST_COPY,
+      });
+    }
+    await continueOrphanBackfill(ctx, sf._id, null);
+    if (sf.phase !== "archived") {
+      await ctx.db.patch("events", sf._id, {
+        phase: "archived",
+        updatedAt: Date.now(),
+      });
+    }
+  }
+
+  const htw = await insertSeed(ctx, HTW_SEED);
   if (htw === null) {
     return null;
   }
 
   await setFeaturedEvent(ctx, htw._id);
+  await markHtwWeekendStaged(ctx, htw._id);
   return htw._id;
 }
 
@@ -466,6 +506,8 @@ export const ensureSeed = mutation({
   returns: v.union(v.id("events"), v.null()),
   handler: async (ctx) => {
     await requireHost(ctx);
+    // HostDesk calls this on every mount. After the first HTW staging this
+    // is a no-op for archive and featured; leftover orphan backfill may run.
     return await stageHtwWeekendInner(ctx);
   },
 });
