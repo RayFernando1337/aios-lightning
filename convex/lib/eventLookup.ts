@@ -39,17 +39,13 @@ export async function getFeaturedEvent(
     .first();
 }
 
-/** Guest-facing lookup. Archived nights are not found. Hosts use getEventBySlug. */
+/** Guest-facing lookup. Featured skips archived; a slug still resolves. */
 export async function resolveEvent(
   ctx: Ctx,
   slug: string | undefined,
 ): Promise<Doc<"events"> | null> {
   if (slug !== undefined && slug.length > 0) {
-    const event = await getEventBySlug(ctx, slug);
-    if (event === null || event.phase === "archived") {
-      return null;
-    }
-    return event;
+    return await getEventBySlug(ctx, slug);
   }
   return await getFeaturedEvent(ctx);
 }
