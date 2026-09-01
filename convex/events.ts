@@ -7,7 +7,7 @@ import {
   mutation,
   query,
 } from "./_generated/server";
-import { requireHost } from "./lib/auth";
+import { identityIsHost, requireHost } from "./lib/auth";
 import { countByStatus, countSelected } from "./lib/counts";
 import {
   getEventBySlug,
@@ -165,6 +165,20 @@ export const bySlug = query({
   returns: v.union(publicEventValidator, v.null()),
   handler: async (ctx, args) => {
     const event = await resolveEvent(ctx, args.slug);
+    return event === null ? null : toPublicEvent(event);
+  },
+});
+
+/** Host desk and /host/[slug]. Includes archived nights. */
+export const hostBySlug = query({
+  args: { slug: v.string() },
+  returns: v.union(publicEventValidator, v.null()),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null || !identityIsHost(identity)) {
+      return null;
+    }
+    const event = await getEventBySlug(ctx, args.slug);
     return event === null ? null : toPublicEvent(event);
   },
 });

@@ -12,7 +12,7 @@ export default function HostChrome({
   slug: string;
   children: ReactNode;
 }) {
-  const event = useQuery(api.events.bySlug, { slug });
+  const event = useQuery(api.events.hostBySlug, { slug });
   const featured = useQuery(api.events.featured);
   const loaded = event !== undefined && event !== null;
   const featuredReady = featured !== undefined;

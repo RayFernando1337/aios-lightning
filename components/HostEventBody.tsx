@@ -20,7 +20,7 @@ export default function HostEventBody({ slug }: { slug: string }) {
 }
 
 function Loaded({ slug }: { slug: string }) {
-  const event = useQuery(api.events.bySlug, { slug });
+  const event = useQuery(api.events.hostBySlug, { slug });
   const featured = useQuery(api.events.featured);
   const nights = useQuery(api.events.listForHost);
 
