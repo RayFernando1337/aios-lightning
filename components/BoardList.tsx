@@ -2,11 +2,25 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { MAX_SELECTED } from "@/convex/lib/limits";
 import { card } from "@/lib/styles";
 
-export default function BoardList() {
-  const entries = useQuery(api.submissions.board);
+export default function BoardList({
+  slug,
+  capacity,
+  showTakeaway = true,
+  liveLabel = "Showing live",
+  takeawayLabel = "Takeaway",
+}: {
+  slug?: string;
+  capacity: number;
+  showTakeaway?: boolean;
+  liveLabel?: string;
+  takeawayLabel?: string;
+}) {
+  const entries = useQuery(
+    api.submissions.board,
+    slug !== undefined ? { slug } : {},
+  );
 
   if (entries === undefined) {
     return <p className="text-muted">Loading the lineup...</p>;
@@ -26,7 +40,7 @@ export default function BoardList() {
   return (
     <>
       <p className="font-mono text-[11px] tracking-[0.22em] text-muted uppercase">
-        {entries.length} of {MAX_SELECTED} slots locked. Top to bottom is the
+        {entries.length} of {capacity} slots locked. Top to bottom is the
         running order.
       </p>
 
@@ -43,19 +57,16 @@ export default function BoardList() {
               <p className="mt-2 font-mono text-[11px] tracking-[0.22em] text-cream/80 uppercase">
                 {entry.displayName}
               </p>
-              {/* The deployed Convex functions can lag this frontend (deploy
-                  window, frontend-only previews), leaving these fields
-                  undefined at runtime despite the validator type. Degrade to
-                  the title-and-name card instead of dangling labels. */}
               {entry.whatYoullShowLive ? (
                 <p className="mt-3 whitespace-pre-line text-cream/85 sm:text-lg">
+                  <span className="sr-only">{liveLabel}. </span>
                   {entry.whatYoullShowLive}
                 </p>
               ) : null}
-              {entry.takeaway ? (
+              {showTakeaway && entry.takeaway ? (
                 <p className="mt-3 text-sm text-cream/80 sm:text-base">
                   <span className="font-mono text-[11px] font-bold tracking-[0.22em] text-admit uppercase">
-                    Takeaway ·{" "}
+                    {takeawayLabel} ·{" "}
                   </span>
                   {entry.takeaway}
                 </p>

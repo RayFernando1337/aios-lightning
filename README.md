@@ -2,8 +2,9 @@
 
 Signup and live running order for a lightning-demo night. Applicants apply in
 about a minute, hosts triage from a phone, and the projector board updates as
-slots lock. The copy in this repo is the AiOS Meetup SF night at Convex HQ.
-Fork it and run your own.
+slots lock. The live featured night is Build with Grok Bot at Hawaii Tech Week.
+The older AiOS SF night stays in the host desk as archived. Hosts post later
+nights from `/host` without a git edit.
 
 Next.js 16 App Router, TypeScript, Tailwind v4, Convex for data, Clerk for auth,
 deployed on Vercel. MIT licensed.
@@ -11,29 +12,34 @@ deployed on Vercel. MIT licensed.
 ## Run your own event
 
 1. Fork or clone the repo.
-2. Rewrite `lib/content.ts`. Every event-specific string (name of the night,
-   venue, dry-run rule, house rules) lives there. To change the slot count,
-   edit `MAX_SELECTED` in `convex/lib/limits.ts`.
-3. Follow [Local setup](#local-setup) to wire Convex and Clerk, and put your
+2. Follow [Local setup](#local-setup) to wire Convex and Clerk, and put your
    own address in `HOST_EMAILS`.
+3. Sign in, open `/host`. The first host visit (or an empty public load) seeds
+   HTW as the featured night and archives AiOS SF. Later nights are a form, not
+   a git edit. Each night gets a URL like `/e/htw-grok-bot` for the room QR.
 4. Ship it with [Deploy to Vercel](#deploy-to-vercel), then walk the
    [night-of checklist](#night-of-checklist).
 
 ## Routes
 
-| Route    | Access               | What it does                                                              |
-| -------- | -------------------- | ------------------------------------------------------------------------- |
-| `/`      | Public               | Rules, the dry run gate, and the apply call to action.                     |
-| `/apply` | Signed in            | One submission per person. Editable, so typos are fixable.                |
-| `/host`  | `HOST_EMAILS` only   | Triage submissions by status. Refuses to select more than 8.              |
-| `/board` | Public               | Running order for the room: name, demo title, what they will show, and the takeaway. Updates live. |
+| Route              | Access             | What it does |
+| ------------------ | ------------------ | ------------ |
+| `/`                | Public             | Featured night. Same film landing as before. The house QR can stay pointed here. |
+| `/apply`           | Signed in          | Apply to the featured night. One submission per person per night. |
+| `/board`           | Public             | Featured night running order. |
+| `/e/[slug]`        | Public             | That night's landing. Print this on the room QR when two rooms run at once. |
+| `/e/[slug]/apply`  | Signed in          | Apply to that night. |
+| `/e/[slug]/board`  | Public             | That night's projector board. |
+| `/host`            | `HOST_EMAILS` only | Post a night, copy its attendee link, open triage. |
+| `/host/[slug]`     | `HOST_EMAILS` only | Triage that night. Refuses to select more than that night's slot cap. |
 
 ## Where auth runs
 
-`proxy.ts` runs Clerk's middleware on `/apply` and `/host` only. Clerk bounces a
-fresh browser to its own servers before rendering a matched route, so keeping `/`
-and `/board` off that list means the landing page and the projector board render
-straight away and keep working even when Clerk is slow or down. Nothing depends
+`proxy.ts` runs Clerk's middleware on `/apply`, `/e/*/apply`, and `/host` only.
+Clerk bounces a fresh browser to its own servers before rendering a matched
+route, so keeping `/`, `/board`, `/e/[slug]`, and `/e/[slug]/board` off that
+list means the landing page and the projector board render straight away and
+keep working even when Clerk is slow or down. Nothing depends
 on that path matching for access control: both signed in routes check the user
 where they read data, and every Convex function checks again on the backend.
 
@@ -51,6 +57,10 @@ where they read data, and every Convex function checks again on the backend.
 `/host` page, Convex uses it to reject host mutations from anyone else. Set it in
 both places. There is no fallback in code. While the variable is unset, nobody
 can open `/host`, and the page tells you which address to add.
+
+`HOST_EMAILS` is deployment-wide. There is no per-event host list. For the HTW
+weekend set it to `smile@rayfernando.ai` only, on Vercel and on the Convex
+deployment. Do not add other meetup or partner addresses.
 
 The public keys are inlined at build time, so redeploy after changing them. If
 either public key is missing, every page renders a short setup checklist instead
@@ -136,6 +146,11 @@ as well, not just the dev one.
 Without a deploy key, keep the default `npm run build` and set
 `NEXT_PUBLIC_CONVEX_URL` in Vercel to your Convex deployment URL.
 
+A Vercel preview only ships the Next.js app. New Convex functions such as
+`events:bySlug` stay invisible until that same commit is pushed to the Convex
+deployment the preview calls. Use the deploy-key build command above, or run
+`npx convex deploy` against that deployment from a machine that is logged in.
+
 For a real event, use a Clerk Production instance, not Development keys. In the
 Clerk dashboard, create the Production instance (it needs a domain you own),
 put its `pk_live_` and `sk_live_` keys in Vercel, and set
@@ -158,30 +173,47 @@ includes an email claim:
 
 ## Data model
 
-`convex/schema.ts` has one table.
+`convex/schema.ts` has three tables.
 
-`submissions`: `userId`, `email`, `displayName`, `demoTitle`,
-`whatYoullShowLive`, `takeaway`, `noSlides`, `noPitch`, `readyIn60s`, `status`,
-`createdAt`, `updatedAt`, `selectedAt`. Indexed `by_user` and `by_status`.
-Status is one of `submitted`, `shortlisted`, `selected`, `rejected`.
-`selectedAt` orders the board and is cleared when a row leaves `selected`.
+`events`: `name`, `slug`, `when`, `where`, `room`, `capacity`, `dryRun`,
+`heroImage`, `phase` (`open`, `closed`, or `archived`), `rules`, `flow`,
+`guestCopy` (apply and board labels), optional `hostNote`, timestamps.
+Indexed `by_slug` and `by_phase`. Archived nights stay on the host desk and
+drop off `/` and the public picker.
 
-Rules enforced in `convex/submissions.ts`, not just in the UI:
+`settings`: one row that points `/` at a featured event.
 
-- One row per user. Applying again edits the existing row.
+`submissions`: `eventId` plus the applicant fields (`userId`, `email`,
+`displayName`, `demoTitle`, `whatYoullShowLive`, `takeaway`, the three format
+pledges, `status`, timestamps, `selectedAt`). Indexed `by_event_user` and
+`by_event_status`. Status is one of `submitted`, `shortlisted`, `selected`,
+`rejected`. `selectedAt` orders that night's board and is cleared when the row
+leaves `selected`.
+
+Rules enforced in Convex, not just in the UI:
+
+- One row per user per event. Applying again edits that night's row.
 - All three format confirmations must be checked.
-- No more than 8 submissions can sit in `selected`.
-- Only allowlisted emails can list submissions or change a status.
+- A night cannot hold more selected rows than its `capacity`.
+- Closed nights refuse new applications. Existing rows stay editable so a
+  selected presenter can fix a typo.
+- Only allowlisted emails can create events or change a status.
 
 ## Night of checklist
 
 1. Production env vars pasted in Vercel, including live Clerk keys and
    `HOST_EMAILS`, then redeploy.
 2. Sign in and open `/host`. If it denies you, the email you signed in with is
-   missing from `HOST_EMAILS` in Vercel, on Convex, or both.
-3. Apply once yourself to smoke test the flow, then set that row to rejected.
-4. Point the QR code at the site root.
-5. Put `/board` on the projector. It updates itself as you select.
+   missing from `HOST_EMAILS` in Vercel, on Convex, or both. The first visit
+   archives AiOS SF if it is still open, inserts `htw-grok-bot` when missing,
+   and points `/` at HTW. You can also run
+   `bunx convex run internal.events.internalStageHtwWeekend` on a logged-in
+   machine. Re-running is safe. It does not overwrite HTW or SF copy in place.
+3. Copy the HTW attendee link (`/e/htw-grok-bot`) for the room QR. The house QR
+   can stay on `/` for the featured night.
+4. Apply once yourself to smoke test the flow, then set that row to rejected.
+5. Put `/board` or `/e/[slug]/board` on the projector. It updates itself as you
+   select.
 
 ## Scripts
 

@@ -1,0 +1,8 @@
+{
+  "aiFiles": {
+    "enabled": true,
+    "skills": {
+      "agents": ["cursor"]
+    }
+  }
+}

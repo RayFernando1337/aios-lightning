@@ -13,6 +13,10 @@ export async function requireIdentity(
   return identity;
 }
 
+export function identityIsHost(identity: UserIdentity): boolean {
+  return identity.email !== undefined && isHostEmail(identity.email);
+}
+
 export async function requireHost(
   ctx: QueryCtx | MutationCtx,
 ): Promise<UserIdentity> {

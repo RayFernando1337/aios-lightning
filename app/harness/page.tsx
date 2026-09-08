@@ -3,7 +3,7 @@
 import { notFound } from "next/navigation";
 import { useState } from "react";
 import { SubmissionRow, toTriageCard } from "@/components/HostDashboard";
-import { MAX_SELECTED } from "@/convex/lib/limits";
+import { DEFAULT_CAPACITY } from "@/convex/lib/limits";
 import { Id } from "@/convex/_generated/dataModel";
 import { SubmissionStatus } from "@/lib/status";
 import { card } from "@/lib/styles";
@@ -21,7 +21,7 @@ export default function Harness() {
   function change(id: Id<"submissions">, status: SubmissionStatus) {
     const selected = rows.filter((row) => row.status === "selected").length;
 
-    if (status === "selected" && selected >= MAX_SELECTED) {
+    if (status === "selected" && selected >= DEFAULT_CAPACITY) {
       setRefused(id);
       return;
     }
@@ -53,7 +53,7 @@ export default function Harness() {
               pending={false}
               failure={
                 refused === submission._id
-                  ? `All ${MAX_SELECTED} slots are taken. Move someone out of selected first.`
+                  ? `All ${DEFAULT_CAPACITY} slots are taken. Move someone out of selected first.`
                   : null
               }
               onChange={(status) => change(submission._id, status)}

@@ -1,0 +1,66 @@
+"use client";
+
+import { Authenticated, AuthLoading, useQuery } from "convex/react";
+import HostDashboard from "@/components/HostDashboard";
+import HostEventControls from "@/components/HostEventControls";
+import { api } from "@/convex/_generated/api";
+import { card } from "@/lib/styles";
+
+export default function HostEventBody({ slug }: { slug: string }) {
+  return (
+    <>
+      <AuthLoading>
+        <p className="text-muted">Checking your session...</p>
+      </AuthLoading>
+      <Authenticated>
+        <Loaded slug={slug} />
+      </Authenticated>
+    </>
+  );
+}
+
+function Loaded({ slug }: { slug: string }) {
+  const event = useQuery(api.events.hostBySlug, { slug });
+  const featured = useQuery(api.events.featured);
+  const nights = useQuery(api.events.listForHost);
+
+  if (event === undefined || featured === undefined || nights === undefined) {
+    return <p className="text-muted">Loading this night...</p>;
+  }
+
+  if (event === null) {
+    return (
+      <div className={card}>
+        <p className="font-semibold">Event not found.</p>
+      </div>
+    );
+  }
+
+  const night = nights.find((row) => row.event._id === event._id);
+
+  return (
+    <div className="space-y-6">
+      <HostEventControls
+        eventId={event._id}
+        slug={event.slug}
+        phase={event.phase}
+        featured={featured?._id === event._id}
+        when={event.when}
+        capacity={event.capacity}
+        hostNote={night?.hostNote}
+      />
+      <HostDashboard
+        eventId={event._id}
+        capacity={event.capacity}
+        counts={
+          night?.counts ?? {
+            submitted: 0,
+            shortlisted: 0,
+            selected: 0,
+            rejected: 0,
+          }
+        }
+      />
+    </div>
+  );
+}

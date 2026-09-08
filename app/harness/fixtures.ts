@@ -17,6 +17,7 @@ function row(
     Doc<"submissions">,
     | "_id"
     | "_creationTime"
+    | "eventId"
     | "userId"
     | "email"
     | "noSlides"
@@ -30,6 +31,7 @@ function row(
   return {
     _id: `fixture_${index}` as Id<"submissions">,
     _creationTime: createdAt,
+    eventId: "fixture_event" as Id<"events">,
     userId: `user_${index}`,
     email: `demo${index}@example.com`,
     displayName: fields.displayName,

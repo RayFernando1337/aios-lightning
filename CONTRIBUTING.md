@@ -1,8 +1,8 @@
 # Contributing
 
-This is a small template for one-night lightning-demo events. Fixes and
-improvements that help every event are welcome. Copy, styling, or rules that
-only fit your event belong in your fork, next to your `lib/content.ts`.
+This is a small template for lightning-demo nights. Fixes and improvements that
+help every event are welcome. Night-specific copy belongs on the event in
+`/host`, not in a fork of the repo.
 
 ## Before you open a PR
 

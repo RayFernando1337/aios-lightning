@@ -26,8 +26,8 @@ export const STATUS_CHIP_STYLES: Record<SubmissionStatus, string> = {
 
 /** What the applicant should do next, by status. */
 export const APPLICANT_NEXT_STEP: Record<SubmissionStatus, string> = {
-  submitted: "You are in the pool. Hosts are picking tonight.",
+  submitted: "You are in the pool. Hosts are still picking.",
   shortlisted: "Shortlisted. Stay close to the front and keep it warm.",
   selected: "You are on the list. Find the host for the dry run.",
-  rejected: "Not this time. Bring it back next month.",
+  rejected: "Not this time. Bring it to the next night.",
 };

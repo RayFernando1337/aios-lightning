@@ -13,7 +13,21 @@ const clerkKeysPresent = Boolean(
  * With no Clerk keys the app renders a setup checklist, so requests pass
  * through rather than every route failing here.
  */
-export default clerkKeysPresent ? clerkMiddleware() : () => NextResponse.next();
+function withPathname(request: {
+  nextUrl: { pathname: string };
+  headers: Headers;
+}) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+}
+
+export default clerkKeysPresent
+  ? clerkMiddleware()
+  : (request: { nextUrl: { pathname: string }; headers: Headers }) =>
+      withPathname(request);
 
 export const config = {
   matcher: [
@@ -22,7 +36,9 @@ export const config = {
     // keeping `/` and `/board` off this list means the landing page and the
     // projector board still render if Clerk is slow or unreachable.
     "/apply(.*)",
+    "/e/(.*)/apply(.*)",
     "/host(.*)",
+    "/harness(.*)",
     "/(api|trpc)(.*)",
     // Always run for Clerk's frontend API routes
     "/__clerk/(.*)",
