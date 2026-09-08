@@ -1,0 +1,15 @@
+{
+  "name": "AiOS SF Lightning",
+  "install": "./scripts/cloud-agent-install.sh",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "./scripts/cloud-agent-start.sh",
+      "description": "Convex local backend watcher plus Next.js dev server. Runs `bunx convex dev --start 'bun dev'` when CLERK_JWT_ISSUER_DOMAIN is set; otherwise `bun dev` alone so public pages still come up with zero secrets."
+    }
+  ],
+  "ports": [
+    { "name": "Next.js dev server", "port": 3000 },
+    { "name": "Convex local backend", "port": 3210 }
+  ]
+}
