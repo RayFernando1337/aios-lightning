@@ -57,21 +57,29 @@ export default function HostEventControls({
     about: about ?? "",
     aiosBlurb: aiosBlurb ?? "",
   };
+  const guestPageKeys = ["lumaUrl", "about", "aiosBlurb"] as const;
   const [guestPage, setGuestPage] = useState(savedGuestPage);
   const [seenGuestPage, setSeenGuestPage] = useState(savedGuestPage);
-  if (
-    savedGuestPage.lumaUrl !== seenGuestPage.lumaUrl ||
-    savedGuestPage.about !== seenGuestPage.about ||
-    savedGuestPage.aiosBlurb !== seenGuestPage.aiosBlurb
-  ) {
+  const refreshedKeys = guestPageKeys.filter(
+    (key) => savedGuestPage[key] !== seenGuestPage[key],
+  );
+  if (refreshedKeys.length > 0) {
     setSeenGuestPage(savedGuestPage);
-    setGuestPage(savedGuestPage);
+    setGuestPage((draft) => {
+      const next = { ...draft };
+      for (const key of refreshedKeys) {
+        next[key] = savedGuestPage[key];
+      }
+      return next;
+    });
   }
   const [savingGuestPage, setSavingGuestPage] = useState(false);
-  const guestPageSavable =
-    guestPage.lumaUrl !== savedGuestPage.lumaUrl ||
-    guestPage.about !== savedGuestPage.about ||
-    guestPage.aiosBlurb !== savedGuestPage.aiosBlurb;
+  const dirtyGuestPage = Object.fromEntries(
+    guestPageKeys
+      .filter((key) => guestPage[key] !== savedGuestPage[key])
+      .map((key) => [key, guestPage[key]]),
+  );
+  const guestPageSavable = Object.keys(dirtyGuestPage).length > 0;
   const slotsSavable =
     slots.trim() !== "" &&
     Number.isInteger(Number(slots)) &&
@@ -126,7 +134,7 @@ export default function HostEventControls({
     setError(null);
     setSavingGuestPage(true);
     try {
-      await update({ eventId, ...guestPage });
+      await update({ eventId, ...dirtyGuestPage });
     } catch (caught) {
       setError(readableError(caught));
     } finally {
