@@ -6,6 +6,7 @@ import ShareNight from "@/components/ShareNight";
 import WhenPicker from "@/components/WhenPicker";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { EVENT_FIELD_LIMITS } from "@/convex/lib/limits";
 import { readableError } from "@/lib/errors";
 import { buttonSecondary, card, fieldHint, fieldLabel, input } from "@/lib/styles";
 import { DEFAULT_DOORS, formatWhen, parseWhen } from "@/lib/when";
@@ -18,6 +19,9 @@ export default function HostEventControls({
   when,
   capacity,
   hostNote,
+  lumaUrl,
+  about,
+  aiosBlurb,
 }: {
   eventId: Id<"events">;
   slug: string;
@@ -26,6 +30,9 @@ export default function HostEventControls({
   when: string;
   capacity: number;
   hostNote?: string;
+  lumaUrl?: string;
+  about?: string;
+  aiosBlurb?: string;
 }) {
   const update = useMutation(api.events.update);
   const setFeatured = useMutation(api.events.setFeatured);
@@ -45,6 +52,26 @@ export default function HostEventControls({
     setSeenCapacity(capacity);
     setSlots(String(capacity));
   }
+  const savedGuestPage = {
+    lumaUrl: lumaUrl ?? "",
+    about: about ?? "",
+    aiosBlurb: aiosBlurb ?? "",
+  };
+  const [guestPage, setGuestPage] = useState(savedGuestPage);
+  const [seenGuestPage, setSeenGuestPage] = useState(savedGuestPage);
+  if (
+    savedGuestPage.lumaUrl !== seenGuestPage.lumaUrl ||
+    savedGuestPage.about !== seenGuestPage.about ||
+    savedGuestPage.aiosBlurb !== seenGuestPage.aiosBlurb
+  ) {
+    setSeenGuestPage(savedGuestPage);
+    setGuestPage(savedGuestPage);
+  }
+  const [savingGuestPage, setSavingGuestPage] = useState(false);
+  const guestPageSavable =
+    guestPage.lumaUrl !== savedGuestPage.lumaUrl ||
+    guestPage.about !== savedGuestPage.about ||
+    guestPage.aiosBlurb !== savedGuestPage.aiosBlurb;
   const slotsSavable =
     slots.trim() !== "" &&
     Number.isInteger(Number(slots)) &&
@@ -92,6 +119,18 @@ export default function HostEventControls({
       setError(readableError(caught));
     } finally {
       setSavingSlots(false);
+    }
+  }
+
+  async function saveGuestPage() {
+    setError(null);
+    setSavingGuestPage(true);
+    try {
+      await update({ eventId, ...guestPage });
+    } catch (caught) {
+      setError(readableError(caught));
+    } finally {
+      setSavingGuestPage(false);
     }
   }
 
@@ -151,6 +190,62 @@ export default function HostEventControls({
           disabled={savingSlots || !slotsSavable}
         >
           {savingSlots ? "Saving..." : "Save slots"}
+        </button>
+      </div>
+      <div className="space-y-2">
+        <p className={fieldLabel}>Guest page</p>
+        <p className={fieldHint}>
+          Optional. Shows on the night page and on / when featured. Leave a box
+          empty to hide it.
+        </p>
+        <label htmlFor="event-luma" className={`${fieldLabel} pt-2`}>
+          Luma link
+        </label>
+        <input
+          id="event-luma"
+          className={input}
+          type="url"
+          inputMode="url"
+          value={guestPage.lumaUrl}
+          onChange={(event) =>
+            setGuestPage({ ...guestPage, lumaUrl: event.target.value })
+          }
+          maxLength={EVENT_FIELD_LIMITS.lumaUrl}
+          placeholder="https://luma.com/..."
+        />
+        <label htmlFor="event-about" className={`${fieldLabel} pt-2`}>
+          About this night
+        </label>
+        <textarea
+          id="event-about"
+          className={`${input} min-h-28`}
+          value={guestPage.about}
+          onChange={(event) =>
+            setGuestPage({ ...guestPage, about: event.target.value })
+          }
+          maxLength={EVENT_FIELD_LIMITS.about}
+          placeholder="What happens tonight. Blank lines start a new paragraph."
+        />
+        <label htmlFor="event-aios" className={`${fieldLabel} pt-2`}>
+          What AiOS is
+        </label>
+        <textarea
+          id="event-aios"
+          className={`${input} min-h-28`}
+          value={guestPage.aiosBlurb}
+          onChange={(event) =>
+            setGuestPage({ ...guestPage, aiosBlurb: event.target.value })
+          }
+          maxLength={EVENT_FIELD_LIMITS.aiosBlurb}
+          placeholder="A short note about the AiOS community."
+        />
+        <button
+          type="button"
+          onClick={() => void saveGuestPage()}
+          className={buttonSecondary}
+          disabled={savingGuestPage || !guestPageSavable}
+        >
+          {savingGuestPage ? "Saving..." : "Save guest page"}
         </button>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">

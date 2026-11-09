@@ -19,4 +19,7 @@ export const EVENT_FIELD_LIMITS = {
   dryRun: 400,
   heroImage: 300,
   slug: 64,
+  lumaUrl: 300,
+  about: 2000,
+  aiosBlurb: 1000,
 } as const;
