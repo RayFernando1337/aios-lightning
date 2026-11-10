@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { guestCopyValidator } from "./lib/guestCopy";
+import { talkValidator } from "./lib/lineup";
 
 export const statusValidator = v.union(
   v.literal("submitted"),
@@ -37,6 +38,9 @@ export const eventFields = {
   lumaUrl: v.optional(v.string()),
   about: v.optional(v.string()),
   aiosBlurb: v.optional(v.string()),
+  talks: v.optional(v.array(talkValidator)),
+  hostNames: v.optional(v.array(v.string())),
+  endTime: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
 };

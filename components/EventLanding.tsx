@@ -5,6 +5,7 @@ import Link from "next/link";
 import ApplyCta from "@/components/ApplyCta";
 import FilmLeader from "@/components/FilmLeader";
 import MainNightLink from "@/components/MainNightLink";
+import NightProgram from "@/components/NightProgram";
 import NowPlayingStrip from "@/components/NowPlayingStrip";
 import SiteHeader from "@/components/SiteHeader";
 import { api } from "@/convex/_generated/api";
@@ -12,6 +13,7 @@ import type { PublicEvent } from "@/convex/events";
 import { SITE } from "@/lib/content";
 import { eventApplyPath, eventBoardPath, eventPath } from "@/lib/paths";
 import { buttonPrimary, buttonSecondary, card, eyebrow } from "@/lib/styles";
+import { venueLine } from "@/lib/venue";
 
 export default function EventLanding({
   event,
@@ -24,7 +26,7 @@ export default function EventLanding({
 }) {
   const applyHref = house ? "/apply" : eventApplyPath(event.slug);
   const boardHref = house ? "/board" : eventBoardPath(event.slug);
-  const roomLine = event.room.length > 0 ? `${event.where} · ${event.room}` : event.where;
+  const roomLine = venueLine(event.where, event.room);
   const openNights = useQuery(api.events.listOpen);
   const otherRooms = (openNights ?? []).filter((night) => night.slug !== event.slug);
   const aboutBlocks = [
@@ -125,6 +127,8 @@ export default function EventLanding({
           </div>
           <div className="film-edge relative" />
         </section>
+
+        <NightProgram event={event} applyHref={applyHref} />
 
         {aboutBlocks.length > 0 && (
           <section className="border-t border-line bg-ink px-[var(--pad)] py-20">

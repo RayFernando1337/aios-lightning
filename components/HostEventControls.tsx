@@ -3,9 +3,11 @@
 import { useMutation } from "convex/react";
 import { useState } from "react";
 import ShareNight from "@/components/ShareNight";
+import TalksEditor, { talkDrafts, talksFromDrafts } from "@/components/TalksEditor";
 import WhenPicker from "@/components/WhenPicker";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import type { Talk } from "@/convex/lib/lineup";
 import { EVENT_FIELD_LIMITS } from "@/convex/lib/limits";
 import { readableError } from "@/lib/errors";
 import { buttonSecondary, card, fieldHint, fieldLabel, input } from "@/lib/styles";
@@ -22,6 +24,9 @@ export default function HostEventControls({
   lumaUrl,
   about,
   aiosBlurb,
+  talks,
+  hostNames,
+  endTime,
 }: {
   eventId: Id<"events">;
   slug: string;
@@ -33,6 +38,9 @@ export default function HostEventControls({
   lumaUrl?: string;
   about?: string;
   aiosBlurb?: string;
+  talks?: Talk[];
+  hostNames?: string[];
+  endTime?: string;
 }) {
   const update = useMutation(api.events.update);
   const setFeatured = useMutation(api.events.setFeatured);
@@ -45,6 +53,24 @@ export default function HostEventControls({
   const [savingWhen, setSavingWhen] = useState(false);
   const draftWhen =
     touched && dateChosen ? formatWhen(dateISO, time) : when;
+  const savedEnd = endTime ?? "";
+  const [endDraft, setEndDraft] = useState(savedEnd);
+  const [seenEnd, setSeenEnd] = useState(savedEnd);
+  if (savedEnd !== seenEnd) {
+    setSeenEnd(savedEnd);
+    setEndDraft(savedEnd);
+  }
+  const savedTalksJson = JSON.stringify(talks ?? []);
+  const [talkDraftList, setTalkDraftList] = useState(() => talkDrafts(talks));
+  const [seenTalksJson, setSeenTalksJson] = useState(savedTalksJson);
+  if (savedTalksJson !== seenTalksJson) {
+    setSeenTalksJson(savedTalksJson);
+    setTalkDraftList(talkDrafts(talks));
+  }
+  const talksSavable =
+    JSON.stringify(talksFromDrafts(talkDraftList)) !==
+    JSON.stringify(talksFromDrafts(talkDrafts(talks)));
+  const [savingTalks, setSavingTalks] = useState(false);
   const [savingSlots, setSavingSlots] = useState(false);
   const [slots, setSlots] = useState(String(capacity));
   const [seenCapacity, setSeenCapacity] = useState(capacity);
@@ -56,8 +82,9 @@ export default function HostEventControls({
     lumaUrl: lumaUrl ?? "",
     about: about ?? "",
     aiosBlurb: aiosBlurb ?? "",
+    hostNames: (hostNames ?? []).join(", "),
   };
-  const guestPageKeys = ["lumaUrl", "about", "aiosBlurb"] as const;
+  const guestPageKeys = ["lumaUrl", "about", "aiosBlurb", "hostNames"] as const;
   const [guestPage, setGuestPage] = useState(savedGuestPage);
   const [seenGuestPage, setSeenGuestPage] = useState(savedGuestPage);
   const refreshedKeys = guestPageKeys.filter(
@@ -110,11 +137,27 @@ export default function HostEventControls({
     setError(null);
     setSavingWhen(true);
     try {
-      await update({ eventId, when: draftWhen });
+      await update({
+        eventId,
+        ...(draftWhen !== when && { when: draftWhen }),
+        ...(endDraft !== savedEnd && { endTime: endDraft }),
+      });
     } catch (caught) {
       setError(readableError(caught));
     } finally {
       setSavingWhen(false);
+    }
+  }
+
+  async function saveTalks() {
+    setError(null);
+    setSavingTalks(true);
+    try {
+      await update({ eventId, talks: talksFromDrafts(talkDraftList) });
+    } catch (caught) {
+      setError(readableError(caught));
+    } finally {
+      setSavingTalks(false);
     }
   }
 
@@ -134,7 +177,14 @@ export default function HostEventControls({
     setError(null);
     setSavingGuestPage(true);
     try {
-      await update({ eventId, ...dirtyGuestPage });
+      const { hostNames: hostNamesText, ...rest } = dirtyGuestPage;
+      await update({
+        eventId,
+        ...rest,
+        ...(hostNamesText !== undefined && {
+          hostNames: hostNamesText.split(","),
+        }),
+      });
     } catch (caught) {
       setError(readableError(caught));
     } finally {
@@ -166,11 +216,23 @@ export default function HostEventControls({
             setTime(nextTime);
           }}
         />
+        <label htmlFor="event-ends" className={`${fieldLabel} pt-2`}>
+          Ends
+        </label>
+        <p className={fieldHint}>Optional. Shows as 6:00 to 8:30 PM PT.</p>
+        <input
+          id="event-ends"
+          className={`${input} appearance-none`}
+          type="time"
+          step={300}
+          value={endDraft}
+          onChange={(event) => setEndDraft(event.target.value)}
+        />
         <button
           type="button"
           onClick={() => void saveWhen()}
           className={buttonSecondary}
-          disabled={savingWhen || draftWhen === when}
+          disabled={savingWhen || (draftWhen === when && endDraft === savedEnd)}
         >
           {savingWhen ? "Saving..." : "Save when"}
         </button>
@@ -221,6 +283,18 @@ export default function HostEventControls({
           maxLength={EVENT_FIELD_LIMITS.lumaUrl}
           placeholder="https://luma.com/..."
         />
+        <label htmlFor="event-hosts" className={`${fieldLabel} pt-2`}>
+          Hosts
+        </label>
+        <input
+          id="event-hosts"
+          className={input}
+          value={guestPage.hostNames}
+          onChange={(event) =>
+            setGuestPage({ ...guestPage, hostNames: event.target.value })
+          }
+          placeholder="Names, separated by commas"
+        />
         <label htmlFor="event-about" className={`${fieldLabel} pt-2`}>
           About this night
         </label>
@@ -254,6 +328,26 @@ export default function HostEventControls({
           disabled={savingGuestPage || !guestPageSavable}
         >
           {savingGuestPage ? "Saving..." : "Save guest page"}
+        </button>
+      </div>
+      <div className="space-y-2">
+        <p className={fieldLabel}>Featured talks</p>
+        <p className={fieldHint}>
+          Scheduled talks, in order. They show as cards on the night page.
+          Open lightning slots stay separate.
+        </p>
+        <TalksEditor
+          idPrefix="event"
+          talks={talkDraftList}
+          onChange={setTalkDraftList}
+        />
+        <button
+          type="button"
+          onClick={() => void saveTalks()}
+          className={buttonSecondary}
+          disabled={savingTalks || !talksSavable}
+        >
+          {savingTalks ? "Saving..." : "Save lineup"}
         </button>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">

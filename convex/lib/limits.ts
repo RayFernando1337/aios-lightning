@@ -22,4 +22,15 @@ export const EVENT_FIELD_LIMITS = {
   lumaUrl: 300,
   about: 2000,
   aiosBlurb: 1000,
+  hostName: 60,
+  hostNames: 8,
+} as const;
+
+export const TALK_FIELD_LIMITS = {
+  count: 12,
+  title: 120,
+  speakerName: 80,
+  affiliation: 80,
+  blurb: 400,
+  url: 300,
 } as const;
