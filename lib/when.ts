@@ -183,6 +183,12 @@ function clock12(timeHHMM: string): { text: string; period: "AM" | "PM" } {
   };
 }
 
+/** "8:30 PM" */
+export function formatClock(timeHHMM: string): string {
+  const clock = clock12(timeHHMM);
+  return `${clock.text} ${clock.period}`;
+}
+
 /** "6:00 to 8:30 PM PT", or "Doors 6:00 PM PT" without an end time. */
 export function formatTimeRange(startHHMM: string, endHHMM?: string): string {
   const start = clock12(startHHMM);

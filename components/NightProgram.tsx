@@ -2,7 +2,7 @@ import ApplyCta from "@/components/ApplyCta";
 import type { PublicEvent } from "@/convex/events";
 import { card, eyebrow } from "@/lib/styles";
 import { venueLine } from "@/lib/venue";
-import { formatTimeRange, labelForISO, parseWhen } from "@/lib/when";
+import { formatClock, formatTimeRange, labelForISO, parseWhen } from "@/lib/when";
 
 const detailLabel =
   "font-mono text-[11px] font-bold tracking-[0.28em] text-muted uppercase";
@@ -15,13 +15,16 @@ export default function NightProgram({
   applyHref: string;
 }) {
   const parsed = parseWhen(event.when);
+  const hasDoors = parsed !== null && event.when.includes("· doors ");
   const details = [
     parsed === null
       ? { label: "When", value: event.when }
       : { label: "Date", value: labelForISO(parsed.dateISO) },
-    ...(parsed === null
-      ? []
-      : [{ label: "Time", value: formatTimeRange(parsed.time, event.endTime) }]),
+    ...(hasDoors
+      ? [{ label: "Time", value: formatTimeRange(parsed.time, event.endTime) }]
+      : event.endTime === undefined
+        ? []
+        : [{ label: "Ends", value: formatClock(event.endTime) }]),
     { label: "Venue", value: venueLine(event.where, event.room) },
     ...(event.hostNames === undefined
       ? []
