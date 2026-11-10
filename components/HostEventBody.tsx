@@ -48,6 +48,9 @@ function Loaded({ slug }: { slug: string }) {
         when={event.when}
         capacity={event.capacity}
         hostNote={night?.hostNote}
+        lumaUrl={event.lumaUrl}
+        about={event.about}
+        aiosBlurb={event.aiosBlurb}
       />
       <HostDashboard
         eventId={event._id}

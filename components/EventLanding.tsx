@@ -27,6 +27,10 @@ export default function EventLanding({
   const roomLine = event.room.length > 0 ? `${event.where} · ${event.room}` : event.where;
   const openNights = useQuery(api.events.listOpen);
   const otherRooms = (openNights ?? []).filter((night) => night.slug !== event.slug);
+  const aboutBlocks = [
+    { label: "About this night", text: event.about },
+    { label: "What AiOS is", text: event.aiosBlurb },
+  ].filter((block): block is { label: string; text: string } => block.text !== undefined);
 
   return (
     <>
@@ -78,6 +82,16 @@ export default function EventLanding({
                   label={event.guestCopy.applyCta}
                   signedOutLabel={event.guestCopy.applyCtaSignedOut}
                 />
+                {event.lumaUrl !== undefined && (
+                  <a
+                    href={event.lumaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonSecondary}
+                  >
+                    RSVP on Luma ↗
+                  </a>
+                )}
                 <Link href={boardHref} className={buttonSecondary}>
                   See the board
                 </Link>
@@ -111,6 +125,35 @@ export default function EventLanding({
           </div>
           <div className="film-edge relative" />
         </section>
+
+        {aboutBlocks.length > 0 && (
+          <section className="border-t border-line bg-ink px-[var(--pad)] py-20">
+            <div className="grid max-w-5xl gap-12 md:grid-cols-2">
+              {aboutBlocks.map((block) => (
+                <div key={block.label}>
+                  <p className={eyebrow}>{block.label}</p>
+                  <div className="mt-6 space-y-4 text-lg leading-relaxed text-cream/90">
+                    {block.text.split(/\n{2,}/).map((paragraph, index) => (
+                      <p key={index} className="whitespace-pre-line">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {event.lumaUrl !== undefined && (
+              <a
+                href={event.lumaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${buttonPrimary} mt-10`}
+              >
+                RSVP on Luma ↗
+              </a>
+            )}
+          </section>
+        )}
 
         {otherRooms.length > 0 && (
           <section className="border-t border-line bg-ink px-[var(--pad)] py-16">

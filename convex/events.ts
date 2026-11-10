@@ -26,7 +26,7 @@ import {
 } from "./lib/limits";
 import { backfillOrphanPage } from "./lib/orphanBackfill";
 import { hasSlugShape, isReservedSlug, slugify } from "./lib/slug";
-import { requireText } from "./lib/text";
+import { optionalHttpsUrl, optionalText, requireText } from "./lib/text";
 import { phaseValidator, ruleValidator } from "./schema";
 import {
   AIOS_SF_SEED,
@@ -50,6 +50,9 @@ export const publicEventValidator = v.object({
   rules: v.array(ruleValidator),
   flow: v.array(v.string()),
   guestCopy: guestCopyValidator,
+  lumaUrl: v.optional(v.string()),
+  about: v.optional(v.string()),
+  aiosBlurb: v.optional(v.string()),
 });
 
 export type PublicEvent = Infer<typeof publicEventValidator>;
@@ -91,6 +94,9 @@ function toPublicEvent(event: {
   rules: PublicEvent["rules"];
   flow: string[];
   guestCopy?: PublicEvent["guestCopy"];
+  lumaUrl?: string;
+  about?: string;
+  aiosBlurb?: string;
 }): PublicEvent {
   return {
     _id: event._id,
@@ -106,6 +112,9 @@ function toPublicEvent(event: {
     rules: event.rules,
     flow: event.flow,
     guestCopy: event.guestCopy ?? LIGHTNING_GUEST_COPY,
+    ...(event.lumaUrl !== undefined && { lumaUrl: event.lumaUrl }),
+    ...(event.about !== undefined && { about: event.about }),
+    ...(event.aiosBlurb !== undefined && { aiosBlurb: event.aiosBlurb }),
   };
 }
 
@@ -276,6 +285,9 @@ export const create = mutation({
     room: v.string(),
     capacity: v.optional(v.number()),
     dryRun: v.optional(v.string()),
+    lumaUrl: v.optional(v.string()),
+    about: v.optional(v.string()),
+    aiosBlurb: v.optional(v.string()),
   },
   returns: v.object({ eventId: v.id("events"), slug: v.string() }),
   handler: async (ctx, args) => {
@@ -290,6 +302,21 @@ export const create = mutation({
       args.dryRun ?? SITE.defaultDryRun,
       "Dry run",
       EVENT_FIELD_LIMITS.dryRun,
+    );
+    const lumaUrl = optionalHttpsUrl(
+      args.lumaUrl ?? "",
+      "Luma link",
+      EVENT_FIELD_LIMITS.lumaUrl,
+    );
+    const about = optionalText(
+      args.about ?? "",
+      "About this night",
+      EVENT_FIELD_LIMITS.about,
+    );
+    const aiosBlurb = optionalText(
+      args.aiosBlurb ?? "",
+      "What AiOS is",
+      EVENT_FIELD_LIMITS.aiosBlurb,
     );
     const slug = await uniqueSlug(ctx, slugify(name));
     const now = Date.now();
@@ -308,6 +335,9 @@ export const create = mutation({
       rules: copy.rules,
       flow: copy.flow,
       guestCopy: LIGHTNING_GUEST_COPY,
+      lumaUrl,
+      about,
+      aiosBlurb,
       createdAt: now,
       updatedAt: now,
     });
@@ -330,6 +360,9 @@ export const update = mutation({
     capacity: v.optional(v.number()),
     dryRun: v.optional(v.string()),
     phase: v.optional(phaseValidator),
+    lumaUrl: v.optional(v.string()),
+    about: v.optional(v.string()),
+    aiosBlurb: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -346,6 +379,9 @@ export const update = mutation({
       phase?: typeof event.phase;
       rules?: ReturnType<typeof copyForCapacity>["rules"];
       flow?: string[];
+      lumaUrl?: string;
+      about?: string;
+      aiosBlurb?: string;
       updatedAt: number;
     } = { updatedAt: Date.now() };
 
@@ -366,6 +402,28 @@ export const update = mutation({
     }
     if (args.phase !== undefined) {
       patch.phase = args.phase;
+    }
+    // Patching a field to undefined removes it, so an empty string clears it.
+    if (args.lumaUrl !== undefined) {
+      patch.lumaUrl = optionalHttpsUrl(
+        args.lumaUrl,
+        "Luma link",
+        EVENT_FIELD_LIMITS.lumaUrl,
+      );
+    }
+    if (args.about !== undefined) {
+      patch.about = optionalText(
+        args.about,
+        "About this night",
+        EVENT_FIELD_LIMITS.about,
+      );
+    }
+    if (args.aiosBlurb !== undefined) {
+      patch.aiosBlurb = optionalText(
+        args.aiosBlurb,
+        "What AiOS is",
+        EVENT_FIELD_LIMITS.aiosBlurb,
+      );
     }
     if (args.capacity !== undefined) {
       const capacity = requireCapacity(args.capacity);

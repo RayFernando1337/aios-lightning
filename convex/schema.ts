@@ -34,6 +34,9 @@ export const eventFields = {
   flow: v.array(v.string()),
   guestCopy: v.optional(guestCopyValidator),
   hostNote: v.optional(v.string()),
+  lumaUrl: v.optional(v.string()),
+  about: v.optional(v.string()),
+  aiosBlurb: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
 };

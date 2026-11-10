@@ -105,6 +105,9 @@ function CreateEventForm() {
   const [where, setWhere] = useState("");
   const [room, setRoom] = useState("");
   const [capacity, setCapacity] = useState(String(DEFAULT_CAPACITY));
+  const [lumaUrl, setLumaUrl] = useState("");
+  const [about, setAbout] = useState("");
+  const [aiosBlurb, setAiosBlurb] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,6 +125,9 @@ function CreateEventForm() {
         where,
         room,
         capacity: Number(capacity),
+        lumaUrl,
+        about,
+        aiosBlurb,
       });
       setName("");
       setDateISO("");
@@ -129,6 +135,9 @@ function CreateEventForm() {
       setWhere("");
       setRoom("");
       setCapacity(String(DEFAULT_CAPACITY));
+      setLumaUrl("");
+      setAbout("");
+      setAiosBlurb("");
     } catch (caught) {
       setError(readableError(caught));
     } finally {
@@ -211,6 +220,48 @@ function CreateEventForm() {
           value={capacity}
           onChange={(event) => setCapacity(event.target.value)}
           required
+        />
+      </div>
+      <div>
+        <label htmlFor="new-event-luma" className={fieldLabel}>
+          Luma link
+        </label>
+        <p className={fieldHint}>Optional. Adds an RSVP on Luma button.</p>
+        <input
+          id="new-event-luma"
+          className={`${input} mt-2`}
+          type="url"
+          inputMode="url"
+          value={lumaUrl}
+          onChange={(event) => setLumaUrl(event.target.value)}
+          maxLength={EVENT_FIELD_LIMITS.lumaUrl}
+          placeholder="https://luma.com/..."
+        />
+      </div>
+      <div>
+        <label htmlFor="new-event-about" className={fieldLabel}>
+          About this night
+        </label>
+        <p className={fieldHint}>Optional. Blank lines start a new paragraph.</p>
+        <textarea
+          id="new-event-about"
+          className={`${input} mt-2 min-h-28`}
+          value={about}
+          onChange={(event) => setAbout(event.target.value)}
+          maxLength={EVENT_FIELD_LIMITS.about}
+        />
+      </div>
+      <div>
+        <label htmlFor="new-event-aios" className={fieldLabel}>
+          What AiOS is
+        </label>
+        <p className={fieldHint}>Optional. Shows beside the night notes.</p>
+        <textarea
+          id="new-event-aios"
+          className={`${input} mt-2 min-h-28`}
+          value={aiosBlurb}
+          onChange={(event) => setAiosBlurb(event.target.value)}
+          maxLength={EVENT_FIELD_LIMITS.aiosBlurb}
         />
       </div>
       {error !== null && (
