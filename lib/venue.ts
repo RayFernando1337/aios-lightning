@@ -5,6 +5,9 @@ export function venueLine(where: string, room: string): string {
     return where;
   }
   const escaped = trimmedRoom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const named = new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`, "i");
+  const named = new RegExp(
+    `(^|[^\\p{L}\\p{N}\\p{M}])${escaped}($|[^\\p{L}\\p{N}\\p{M}])`,
+    "iu",
+  );
   return named.test(where) ? where : `${where} · ${trimmedRoom}`;
 }
