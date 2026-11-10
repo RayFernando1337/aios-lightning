@@ -16,6 +16,7 @@ import type * as lib_eventLookup from "../lib/eventLookup.js";
 import type * as lib_guestCopy from "../lib/guestCopy.js";
 import type * as lib_hosts from "../lib/hosts.js";
 import type * as lib_limits from "../lib/limits.js";
+import type * as lib_lineup from "../lib/lineup.js";
 import type * as lib_orphanBackfill from "../lib/orphanBackfill.js";
 import type * as lib_orphanMerge from "../lib/orphanMerge.js";
 import type * as lib_slug from "../lib/slug.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   "lib/guestCopy": typeof lib_guestCopy;
   "lib/hosts": typeof lib_hosts;
   "lib/limits": typeof lib_limits;
+  "lib/lineup": typeof lib_lineup;
   "lib/orphanBackfill": typeof lib_orphanBackfill;
   "lib/orphanMerge": typeof lib_orphanMerge;
   "lib/slug": typeof lib_slug;
