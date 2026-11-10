@@ -19,6 +19,13 @@ import {
 } from "./lib/eventLookup";
 import { guestCopyValidator } from "./lib/guestCopy";
 import {
+  Talk,
+  normalizeHostNames,
+  normalizeTalks,
+  optionalClockTime,
+  talkValidator,
+} from "./lib/lineup";
+import {
   CAPACITY_MAX,
   CAPACITY_MIN,
   DEFAULT_CAPACITY,
@@ -53,6 +60,9 @@ export const publicEventValidator = v.object({
   lumaUrl: v.optional(v.string()),
   about: v.optional(v.string()),
   aiosBlurb: v.optional(v.string()),
+  talks: v.optional(v.array(talkValidator)),
+  hostNames: v.optional(v.array(v.string())),
+  endTime: v.optional(v.string()),
 });
 
 export type PublicEvent = Infer<typeof publicEventValidator>;
@@ -97,6 +107,9 @@ function toPublicEvent(event: {
   lumaUrl?: string;
   about?: string;
   aiosBlurb?: string;
+  talks?: Talk[];
+  hostNames?: string[];
+  endTime?: string;
 }): PublicEvent {
   return {
     _id: event._id,
@@ -115,6 +128,9 @@ function toPublicEvent(event: {
     ...(event.lumaUrl !== undefined && { lumaUrl: event.lumaUrl }),
     ...(event.about !== undefined && { about: event.about }),
     ...(event.aiosBlurb !== undefined && { aiosBlurb: event.aiosBlurb }),
+    ...(event.talks !== undefined && { talks: event.talks }),
+    ...(event.hostNames !== undefined && { hostNames: event.hostNames }),
+    ...(event.endTime !== undefined && { endTime: event.endTime }),
   };
 }
 
@@ -288,6 +304,9 @@ export const create = mutation({
     lumaUrl: v.optional(v.string()),
     about: v.optional(v.string()),
     aiosBlurb: v.optional(v.string()),
+    talks: v.optional(v.array(talkValidator)),
+    hostNames: v.optional(v.array(v.string())),
+    endTime: v.optional(v.string()),
   },
   returns: v.object({ eventId: v.id("events"), slug: v.string() }),
   handler: async (ctx, args) => {
@@ -318,6 +337,9 @@ export const create = mutation({
       "What AiOS is",
       EVENT_FIELD_LIMITS.aiosBlurb,
     );
+    const talks = normalizeTalks(args.talks ?? []);
+    const hostNames = normalizeHostNames(args.hostNames ?? []);
+    const endTime = optionalClockTime(args.endTime ?? "", "Ends");
     const slug = await uniqueSlug(ctx, slugify(name));
     const now = Date.now();
     const copy = copyForCapacity(capacity);
@@ -338,6 +360,9 @@ export const create = mutation({
       lumaUrl,
       about,
       aiosBlurb,
+      talks,
+      hostNames,
+      endTime,
       createdAt: now,
       updatedAt: now,
     });
@@ -363,6 +388,9 @@ export const update = mutation({
     lumaUrl: v.optional(v.string()),
     about: v.optional(v.string()),
     aiosBlurb: v.optional(v.string()),
+    talks: v.optional(v.array(talkValidator)),
+    hostNames: v.optional(v.array(v.string())),
+    endTime: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -382,6 +410,9 @@ export const update = mutation({
       lumaUrl?: string;
       about?: string;
       aiosBlurb?: string;
+      talks?: Talk[];
+      hostNames?: string[];
+      endTime?: string;
       updatedAt: number;
     } = { updatedAt: Date.now() };
 
@@ -424,6 +455,15 @@ export const update = mutation({
         "What AiOS is",
         EVENT_FIELD_LIMITS.aiosBlurb,
       );
+    }
+    if (args.talks !== undefined) {
+      patch.talks = normalizeTalks(args.talks);
+    }
+    if (args.hostNames !== undefined) {
+      patch.hostNames = normalizeHostNames(args.hostNames);
+    }
+    if (args.endTime !== undefined) {
+      patch.endTime = optionalClockTime(args.endTime, "Ends");
     }
     if (args.capacity !== undefined) {
       const capacity = requireCapacity(args.capacity);

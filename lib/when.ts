@@ -173,3 +173,30 @@ export function parseWhen(
 
   return { dateISO, time };
 }
+
+function clock12(timeHHMM: string): { text: string; period: "AM" | "PM" } {
+  const [hour, minutes] = timeHHMM.split(":").map(Number);
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return {
+    text: `${hour12}:${String(minutes).padStart(2, "0")}`,
+    period: hour < 12 ? "AM" : "PM",
+  };
+}
+
+/** "8:30 PM" */
+export function formatClock(timeHHMM: string): string {
+  const clock = clock12(timeHHMM);
+  return `${clock.text} ${clock.period}`;
+}
+
+/** "6:00 to 8:30 PM PT", or "Doors 6:00 PM PT" without an end time. */
+export function formatTimeRange(startHHMM: string, endHHMM?: string): string {
+  const start = clock12(startHHMM);
+  if (endHHMM === undefined) {
+    return `Doors ${start.text} ${start.period} PT`;
+  }
+  const end = clock12(endHHMM);
+  const startLabel =
+    start.period === end.period ? start.text : `${start.text} ${start.period}`;
+  return `${startLabel} to ${end.text} ${end.period} PT`;
+}

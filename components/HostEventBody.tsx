@@ -51,6 +51,9 @@ function Loaded({ slug }: { slug: string }) {
         lumaUrl={event.lumaUrl}
         about={event.about}
         aiosBlurb={event.aiosBlurb}
+        talks={event.talks}
+        hostNames={event.hostNames}
+        endTime={event.endTime}
       />
       <HostDashboard
         eventId={event._id}

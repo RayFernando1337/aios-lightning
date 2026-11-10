@@ -4,6 +4,7 @@ import { Authenticated, AuthLoading, useMutation, useQuery } from "convex/react"
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import ShareNight from "@/components/ShareNight";
+import TalksEditor, { TalkDraft, talksFromDrafts } from "@/components/TalksEditor";
 import WhenPicker from "@/components/WhenPicker";
 import { api } from "@/convex/_generated/api";
 import { DEFAULT_CAPACITY, EVENT_FIELD_LIMITS } from "@/convex/lib/limits";
@@ -108,6 +109,9 @@ function CreateEventForm() {
   const [lumaUrl, setLumaUrl] = useState("");
   const [about, setAbout] = useState("");
   const [aiosBlurb, setAiosBlurb] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [hostNames, setHostNames] = useState("");
+  const [talks, setTalks] = useState<TalkDraft[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -128,6 +132,9 @@ function CreateEventForm() {
         lumaUrl,
         about,
         aiosBlurb,
+        endTime,
+        hostNames: hostNames.split(","),
+        talks: talksFromDrafts(talks),
       });
       setName("");
       setDateISO("");
@@ -138,6 +145,9 @@ function CreateEventForm() {
       setLumaUrl("");
       setAbout("");
       setAiosBlurb("");
+      setEndTime("");
+      setHostNames("");
+      setTalks([]);
     } catch (caught) {
       setError(readableError(caught));
     } finally {
@@ -178,6 +188,20 @@ function CreateEventForm() {
             }}
           />
         </div>
+      </div>
+      <div>
+        <label htmlFor="new-event-ends" className={fieldLabel}>
+          Ends
+        </label>
+        <p className={fieldHint}>Optional. Shows as 6:00 to 8:30 PM PT.</p>
+        <input
+          id="new-event-ends"
+          className={`${input} mt-2 appearance-none`}
+          type="time"
+          step={300}
+          value={endTime}
+          onChange={(event) => setEndTime(event.target.value)}
+        />
       </div>
       <div>
         <label htmlFor="event-where" className={fieldLabel}>
@@ -263,6 +287,29 @@ function CreateEventForm() {
           onChange={(event) => setAiosBlurb(event.target.value)}
           maxLength={EVENT_FIELD_LIMITS.aiosBlurb}
         />
+      </div>
+      <div>
+        <label htmlFor="new-event-hosts" className={fieldLabel}>
+          Hosts
+        </label>
+        <p className={fieldHint}>Optional. Names, separated by commas.</p>
+        <input
+          id="new-event-hosts"
+          className={`${input} mt-2`}
+          value={hostNames}
+          onChange={(event) => setHostNames(event.target.value)}
+          placeholder="Ronald Mannak, Wayne Sutton, Ray Fernando"
+        />
+      </div>
+      <div>
+        <p className={fieldLabel}>Featured talks</p>
+        <p className={fieldHint}>
+          Optional. Scheduled talks, in order. Open lightning slots stay
+          separate.
+        </p>
+        <div className="mt-2">
+          <TalksEditor idPrefix="new-event" talks={talks} onChange={setTalks} />
+        </div>
       </div>
       {error !== null && (
         <p className="border border-admit/40 bg-admit/10 px-4 py-3 text-sm text-paper">
